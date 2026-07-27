@@ -1,11 +1,11 @@
-# Lecture 2 — Images, runtimes and engines
+# Лекция 2 — Образы, рантаймы и движки
 
-Where the container's filesystem comes from, and the whole stack from engine down to process. The OCI image and runtime specs, and why there are so many layers between `docker run` and a running process.
+Откуда берётся файловая система контейнера и весь стек от движка до процесса. Форматы OCI (образ и рантайм) и почему между `docker run` и работающим процессом столько слоёв.
 
-## Blocks
+## Блоки
 
-1. **Images from the inside** — OCI Image Spec, layers, content-addressable storage, overlayfs; manifest and config; cache and reproducibility.
-2. **From engine to process** — OCI Runtime Spec and runc; the dockerd → containerd → shim → runc stack; why the shim exists; CRI and where kubelet fits.
-3. **Building and shipping** — BuildKit (build graph, cache, parallelism); multi-stage builds; the registry protocol, distribution, pull/push.
+1. **Образ изнутри** — OCI Image Spec, слои, content-addressable storage, overlayfs; манифест и конфиг; кэш и воспроизводимость.
+2. **От движка к процессу** — OCI Runtime Spec и runc; стек dockerd → containerd → shim → runc; зачем нужен shim; CRI и место kubelet.
+3. **Сборка и доставка** — BuildKit (граф сборки, кэш, параллелизм); multi-stage; протокол registry, distribution, pull/push.
 
-> Self-study notes and the lab will be added later.
+> Конспект-самоучитель и лаба появятся позже.

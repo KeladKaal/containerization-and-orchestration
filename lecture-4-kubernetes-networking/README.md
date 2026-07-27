@@ -1,11 +1,11 @@
-# Lecture 4 — Kubernetes networking
+# Лекция 4 — Сеть Kubernetes
 
-How packets actually move in a cluster. The flat pod network and CNI, how Services and load balancing work under the hood, and where the industry is heading with eBPF.
+Как на самом деле ходят пакеты в кластере. Плоская сеть подов и CNI, как устроены Services и балансировка изнутри, и куда движется индустрия с eBPF.
 
-## Blocks
+## Блоки
 
-1. **The network model and CNI** — the flat pod network, veth and bridges, what a CNI plugin does when a Pod is created; IPAM.
-2. **Services and load balancing** — ClusterIP, EndpointSlices; kube-proxy: iptables vs IPVS; DNS and CoreDNS; headless services.
-3. **Policies and eBPF** — NetworkPolicy and who enforces it; Cilium and the eBPF data plane as an alternative to kube-proxy; where things are heading.
+1. **Модель сети и CNI** — плоская сеть подов, veth и мосты, что делает CNI-плагин при создании пода; IPAM.
+2. **Services и балансировка** — ClusterIP, EndpointSlices; kube-proxy: iptables против IPVS; DNS и CoreDNS; headless-сервисы.
+3. **Политики и eBPF** — NetworkPolicy и кто её применяет; Cilium и eBPF-датаплейн как альтернатива kube-proxy; куда всё идёт.
 
-> Self-study notes and the lab will be added later.
+> Конспект-самоучитель и лаба появятся позже.

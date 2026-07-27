@@ -1,11 +1,11 @@
-# Lecture 6 — Service mesh and advanced traffic
+# Лекция 6 — Service mesh и продвинутый трафик
 
-Why a mesh exists, how it's built, and what it costs. Data plane vs control plane, the sidecar model with Envoy, and the shift toward sidecarless and eBPF.
+Зачем нужен mesh, как он устроен и чего он стоит. Data plane против control plane, sidecar-модель на Envoy и сдвиг в сторону sidecarless и eBPF.
 
-## Blocks
+## Блоки
 
-1. **Why a mesh** — L7 concerns pulled out of application code; data plane vs control plane; Envoy as a sidecar; traffic interception.
-2. **What a mesh gives you** — mTLS and workload identity; traffic management (canary, retry, timeout, circuit breaking); observability.
-3. **Cost and evolution** — the overhead of the sidecar model; ambient / sidecarless; the eBPF approach; when you don't need a mesh at all.
+1. **Зачем mesh** — L7-задачи, вынесенные из кода приложения; data plane против control plane; Envoy как sidecar; перехват трафика.
+2. **Что даёт mesh** — mTLS и identity нагрузки; управление трафиком (canary, retry, timeout, circuit breaking); наблюдаемость.
+3. **Цена и эволюция** — накладные расходы sidecar-модели; ambient / sidecarless; eBPF-подход; когда mesh не нужен вовсе.
 
-> Self-study notes and the lab will be added later.
+> Конспект-самоучитель и лаба появятся позже.

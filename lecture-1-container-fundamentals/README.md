@@ -1,11 +1,11 @@
-# Lecture 1 — Container fundamentals
+# Лекция 1 — Фундамент контейнеров
 
-What a container actually is: an ordinary Linux process placed under kernel restrictions, not a lightweight VM. We take `docker run` and go down to the kernel mechanisms that make a process "a container".
+Что такое контейнер на самом деле: обычный процесс Linux, помещённый в ограничения ядра, а не лёгкая виртуальная машина. Берём `docker run` и спускаемся к тем механизмам ядра, которые и делают процесс «контейнером».
 
-## Blocks
+## Блоки
 
-1. **A container is a process** — the "lightweight VM" myth; VM vs container; `docker run` seen from the host; the three mechanisms a container is built from.
-2. **namespaces — what a process sees** — pid, net, mnt, uts, ipc, user, cgroup; the root filesystem and `pivot_root`; how it's created (`clone` / `unshare` / `setns`).
-3. **cgroups and hardening — what a process is allowed** — cgroups v2, memory/CPU limits and OOM vs throttling; capabilities; seccomp; LSM (AppArmor/SELinux); where the isolation leaks.
+1. **Контейнер — это процесс** — миф про «лёгкую ВМ»; ВМ против контейнера; `docker run` глазами хоста; три механизма, из которых собран контейнер.
+2. **namespaces — что процесс видит** — pid, net, mnt, uts, ipc, user, cgroup; корень файловой системы и `pivot_root`; как это создаётся (`clone` / `unshare` / `setns`).
+3. **cgroups и ужесточение — что процессу можно** — cgroups v2, лимиты памяти/CPU и OOM против throttling; capabilities; seccomp; LSM (AppArmor/SELinux); где изоляция протекает.
 
-> Self-study notes and the lab will be added later.
+> Конспект-самоучитель и лаба появятся позже.

@@ -1,11 +1,11 @@
-# Lecture 3 — Kubernetes control plane
+# Лекция 3 — Control plane Kubernetes
 
-We move up into orchestration. The declarative model and the reconciliation loop as the central idea, the control-plane components, and the full path of a request from `kubectl apply` to a Pod on a node.
+Поднимаемся в оркестрацию. Декларативная модель и reconciliation loop как центральная идея, компоненты control plane и полный путь запроса от `kubectl apply` до пода на ноде.
 
-## Blocks
+## Блоки
 
-1. **The declarative model** — desired vs actual state; the reconciliation loop as the central idea; objects, specs, statuses.
-2. **Control-plane components** — API server, etcd (raft, watch, resourceVersion, optimistic concurrency), scheduler, controller-manager.
-3. **The path of a request** — from `kubectl apply` to a Pod on a node; admission; kubelet and its reconcile loop; CRI/CNI/CSI on the node.
+1. **Декларативная модель** — желаемое против фактического состояния; reconciliation loop как центральная идея; объекты, спеки, статусы.
+2. **Компоненты control plane** — API-сервер, etcd (raft, watch, resourceVersion, оптимистичная блокировка), планировщик, controller-manager.
+3. **Путь запроса** — от `kubectl apply` до пода на ноде; admission; kubelet и его цикл сверки; CRI/CNI/CSI на ноде.
 
-> Self-study notes and the lab will be added later.
+> Конспект-самоучитель и лаба появятся позже.

@@ -1,11 +1,11 @@
-# Lecture 5 — Scheduling, resources and storage
+# Лекция 5 — Планирование, ресурсы и хранилище
 
-How the scheduler decides where a Pod runs, what happens to resources under pressure, and how state is handled. This is where cgroups from lecture 1 meet Kubernetes.
+Как планировщик решает, где запустить под, что происходит с ресурсами под давлением и как устроено состояние. Здесь cgroups из первой лекции встречаются с Kubernetes.
 
-## Blocks
+## Блоки
 
-1. **The scheduler from the inside** — the filter and scoring cycle; affinity/anti-affinity, taints/tolerations, topology spread; preemption.
-2. **Resources and pressure** — requests/limits and node cgroups; QoS classes; CPU throttling; OOM and eviction under memory/disk pressure.
-3. **State** — CSI and volumes; PV/PVC/StorageClass; StatefulSet and stable identity; why running a database in Kubernetes is a deliberate decision.
+1. **Планировщик изнутри** — цикл фильтров и скоринга; affinity/anti-affinity, taints/tolerations, topology spread; preemption.
+2. **Ресурсы и давление** — requests/limits и cgroups на ноде; QoS-классы; CPU throttling; OOM и eviction под давлением памяти/диска.
+3. **Состояние** — CSI и тома; PV/PVC/StorageClass; StatefulSet и стабильная идентичность; почему БД в Kubernetes — это осознанное решение.
 
-> Self-study notes and the lab will be added later.
+> Конспект-самоучитель и лаба появятся позже.

@@ -1,11 +1,11 @@
-# Lecture 7 — Extensibility and runtime security
+# Лекция 7 — Расширяемость и безопасность рантайма
 
-How Kubernetes is extended, and how far container isolation really goes. Custom APIs and operators, admission control, stronger runtimes, and trust in the supply chain — the payoff of the "where the abstraction leaks" thread running through the course.
+Как расширяют Kubernetes и как далеко на самом деле заходит изоляция контейнеров. Свои API и операторы, admission control, усиленные рантаймы и доверие к цепочке поставки — расплата по линии «где протекает абстракция», которая шла через весь курс.
 
-## Blocks
+## Блоки
 
-1. **Extending the API** — CRDs, controllers and the operator pattern; admission webhooks (validating/mutating); OPA/Gatekeeper, Kyverno.
-2. **Stronger isolation** — why a shared kernel is a risk; rootless; gVisor (syscall interception), Kata (micro-VMs); when to use which.
-3. **Supply chain and trust boundaries** — image signing, provenance, SBOM; multi-tenancy: where the trust boundaries run; course wrap-up.
+1. **Расширение API** — CRD, контроллеры и operator pattern; admission webhooks (validating/mutating); OPA/Gatekeeper, Kyverno.
+2. **Изоляция посильнее** — почему общий kernel — это риск; rootless; gVisor (перехват syscalls), Kata (микро-ВМ); когда что.
+3. **Цепочка поставки и границы доверия** — подпись образов, provenance, SBOM; multi-tenancy: где проходят границы доверия; итоги курса.
 
-> Self-study notes and the lab will be added later.
+> Конспект-самоучитель и лаба появятся позже.

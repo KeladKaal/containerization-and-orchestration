@@ -1,3 +1,3 @@
-# AI instructions for this repository
+# Инструкции для AI в этом репозитории
 
-The full rules for how an AI assistant must behave here live in @AGENTS.md — follow them exactly.
+Полные правила поведения AI-ассистента здесь находятся в @AGENTS.md — следуй им в точности.
