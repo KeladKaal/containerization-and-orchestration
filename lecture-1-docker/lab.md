@@ -1,83 +1,86 @@
-# Lab 1 — Build a container by hand and keep a service within limits
+# Lab 1 — Your own Docker
 
 ## Situation
 
-All course long we say a container is an ordinary process to which the kernel gives an altered view of the world and trimmed resources. In this lab you prove it to yourself in practice: **you build a container around your own service using bare Linux kernel primitives**, then compare your build with what Docker does and with the hardened gVisor runtime.
+This lab has you imitate containerization by, in effect, building your own Docker. You'll run an ordinary process with no isolation, then add namespaces, resource limits and reduced privileges to it by hand. You'll collect all of that into a single script — that's your Docker — and compare running it with a real `docker run`.
 
-There is no foreign or "malicious" code here. The "bad behavior" — eating memory, hogging the CPU — you trigger yourself, through harmless endpoints of your service and the standard `stress-ng` tool. The learning part is not programming but **devops work around a process**: namespaces, cgroups, privileges.
+Writing the service isn't graded — it's a tool, not the goal. The learning is the work with namespaces, cgroups and privileges.
 
-The test service is simple and can be **generated entirely with AI**. You need a tiny HTTP service `api` with three endpoints:
+## Part 0 — Your service
+
+Write your service. Hello-world level is fine, generated is fine — writing it is not the goal and isn't graded.
+
+Requirements: an HTTP service `api` with three endpoints:
 
 - `GET /health` — returns `ok`;
 - `GET /eat?mb=N` — allocates N megabytes of memory and holds them;
 - `GET /burn` — loads one CPU core in an infinite loop.
 
-Nothing else is required — it is just a tool to pull resources on command.
+## Part 1 — Run it directly
 
-## Part 0 — Choose the service language
+Run the service directly on your machine. Open it in a browser, show that `/health` responds. Find the process with `ps` on the host, note its PID.
 
-The language of the test `api` is **your choice**, and it affects what you see in the image part:
+This is the baseline: no isolation, the process sees the whole system and can take any amount of resources.
 
-- **compiled (e.g. Go)** — the multi-stage build and the `scratch` base image shine: the final image can be reduced to almost a single binary;
-- **interpreted (e.g. Python)** — the image is thicker, but the discussion of dependency layers is clearer.
+## Part 2 — namespaces
 
-Note in the README what you chose and why.
+Put the process into its own namespaces with `unshare` (pid, mount, net, uts, ipc and user). Enter it and show:
 
-## Part 1 — Run without isolation (baseline)
+- inside, the process is PID 1 and can't see other processes;
+- it has its own hostname and its own empty network;
+- root inside is an unprivileged user outside (check which uid the process runs as on the host).
 
-Run `api` as an ordinary process directly on the host (no Docker, nothing). Open it in a browser, hit `/health`. Look at the process with `ps` on the host — it is there, an ordinary process among the rest.
+Note in the README what each namespace isolated.
 
-In the README, record: this is the starting state; the process has no isolation and no limits — it sees the whole system and can take any amount of resources.
+## Part 3 — cgroups
 
-## Part 2 — Give the process its own view of the world (namespaces)
+Create a cgroup v2 for the process and add limits. Test each through your service:
 
-Place the process in its own namespaces via `unshare` (pid, mount, net, uts, ipc and, mandatorily, **user**). Go inside and show:
+- memory: set a small ceiling, hit it via `/eat?mb=...`, catch the OOM. This is the same thing as `OOMKilled` in Kubernetes;
+- CPU: set a limit (say, half a core), hit it via `/burn`, find the throttling in the cgroup stats;
+- processes: set `pids.max`, launch a fork bomb via `stress-ng --fork`, show that it can't multiply.
 
-- from inside, your process is **PID 1**, and it does not see other processes;
-- it has its own hostname and its own (empty) network;
-- thanks to the user namespace, **root inside is an unprivileged user outside** (check which uid the process runs as on the host).
+## Part 4 — privileges
 
-In the README, describe what changed compared to Part 1 and exactly what each namespace isolated.
+Leave the process only the minimum it needs:
 
-## Part 3 — Cap the appetite (cgroups)
+- drop extra capabilities and show that a privileged action (e.g. changing the system time) no longer works;
+- apply a seccomp profile and show that a blocked system call is rejected.
 
-Create a cgroup (v2) for the process and attach limits. Test each on your service:
+Describe what each mechanism closes off.
 
-- **memory:** set a small ceiling and hit `/eat?mb=...` past it → catch the kernel killing the process (OOM). Describe what happened and how it maps to `OOMKilled` in Kubernetes.
-- **CPU:** set a CPU limit (e.g. half a core), hit `/burn` → measure **throttling** (the process is alive but slowed). Find where this shows up in the cgroup statistics.
-- **process count:** set `pids.max` and use `stress-ng --fork` to show that it cannot multiply (protection against a fork bomb).
+## Part 5 — Assemble your Docker
 
-## Part 4 — Trim privileges (capabilities, seccomp)
+Collect all the commands from parts 2–4 into a single script (e.g. `mydocker.sh`) that starts `api` in its own namespaces, with cgroup limits and reduced privileges, in one command. Check that the service comes up and `/health` responds.
 
-Leave the process only the necessary minimum of rights:
+Now run the same service via `docker run` and compare it with your script: what matches, what your script is missing, and what Docker does beyond it. Put the comparison in the README.
 
-- drop excess **capabilities** and show that a privileged action (your choice — e.g. changing the system time) is rejected;
-- apply a **seccomp** profile and show that a blocked system call does not go through.
+## Part 6 — Images
 
-In the README, explain why this is needed and what each mechanism closes off.
+Your script was missing a ready-made filesystem — that's what an image provides.
 
-## Part 5 — Build an image and compare with Docker
+- Write a Dockerfile for `api` and build the image.
+- Do a multi-stage build with a minimal base (for Go, `scratch` or distroless works). Compare the size, the number of layers, and what got reused from cache on a rebuild.
+- Write a file inside the container, recreate the container — the file is gone. Repeat with a volume — the file stays.
 
-1. Write a **Dockerfile** for `api` and build the image the usual way.
-2. Make a **multi-stage** build with a minimal base (for Go — `scratch`/distroless) → compare sizes and layer counts, and see what was reused from cache on a rebuild.
-3. Run the service in Docker, write a file inside the container, recreate the container → show the file is gone; repeat with a **volume** → the file survives.
-4. Run the same image under **gVisor** (`runsc`). Compare in the README: what your manual build from Parts 2–4 closes off, what Docker gives by default, what gVisor adds, and **where isolation still leaks** (shared kernel).
+## Part 7 — When a container isn't enough
 
-## Part 6 — Monitoring (mandatory)
+Run the image under gVisor (`runsc`) and compare its isolation with ordinary Docker and with your script. Work out how gVisor is built differently and why it's considered more isolated. Separately, answer: what does an ordinary container always share with the host, and why is that the limit of container isolation. Conclusions go in the README.
 
-Set up observation of your container: collect consumption metrics (memory, CPU, throttling) from the cgroup or via cAdvisor and build a dashboard from them. Decide yourself what matters to see, then **pick 3 metrics you would build alerts on** and explain the choice — what each one catches and what it risks.
+## Part 8 — Monitoring
 
-The tool is your choice.
+Collect container metrics (memory, CPU, throttling) from the cgroup or via cAdvisor and build a dashboard. Decide yourself what matters to see, and pick 3 metrics to alert on — for each, write what it catches and why it matters.
 
 ## What to submit
 
-1. **Service code** `api` with a Dockerfile (generated — not graded as programming).
-2. **`README.md`** — the chosen language and why; what each step of Parts 2–4 showed (namespaces, cgroups, privileges) explained through the lecture's concepts; the image comparison from Part 5; the comparison of your build with Docker and gVisor; the dashboard and the rationale for the 3 alert metrics.
-3. **Your scripts and configs** — the `unshare`/cgroups commands, the seccomp profile, the Dockerfile.
-4. **Screenshots**: the process as PID 1 from inside and ordinary from outside; the moment of OOM; throttling in the statistics; a seccomp/capabilities rejection; the image size comparison; the dashboard.
+- The `api` service code with a Dockerfile (generated code isn't graded).
+- The `mydocker.sh` script — your Docker from parts 2–4.
+- `README.md`: the service language; what each step in parts 2–4 showed; the comparison of your script with `docker run` (part 5); the image comparison (part 6); what gVisor adds (part 7); the dashboard and the rationale for the three metrics.
+- Configs: seccomp profile, Dockerfile.
+- Screenshots: the process as PID 1 inside and ordinary outside; OOM; throttling; a rejection by seccomp or capabilities; a working `mydocker.sh`; the image size comparison; the dashboard.
 
 ## How to start
 
-Open this repository with your AI assistant and ask for help with **Lab 1**. The assistant is set up to guide you **step by step** and to check your understanding — it deliberately does not hand out a ready solution. First generate the `api` service (Part 0), then work through the learning part — building the container by hand — step by step from Part 1.
+Open the repository with your AI assistant and ask it to help with Lab 1. The assistant works step by step and checks your understanding; it won't hand you a finished solution. Generate the service (Part 0), then go in order from Part 1.
 
-> **Using AI?** Make sure your assistant follows the repository rules in [`AGENTS.md`](../AGENTS.md). Most tools pick it up automatically; if yours did not — just point it at this file and ask it to act accordingly.
+> Using AI? Make sure the assistant follows the rules in [`AGENTS.md`](../AGENTS.md). Most tools pick it up automatically; if not, point it at the file.
