@@ -1,6 +1,6 @@
-# Lecture 3 — Scheduling and resources
+# Lecture 4 — Scheduling and resources
 
-In Lecture 2 we saw the Kubernetes "brain": you declare the desired state, a controller creates pods, the scheduler assigns each pod to a node, and `kubelet` runs the containers. Two parts of that chain stayed black boxes. By what rules does the scheduler pick a node? And what happens to memory and CPU on the node itself under load — where do `OOMKilled` and mysterious slowdowns come from? Today we answer both, then cover a third question: where does data that must not be lost live, given that a container is ephemeral and everything written inside it disappears when the pod is recreated?
+In the previous lecture we saw the Kubernetes "brain": you declare the desired state, a controller creates pods, the scheduler assigns each pod to a node, and `kubelet` runs the containers. Two parts of that chain stayed black boxes. By what rules does the scheduler pick a node? And what happens to memory and CPU on the node itself under load — where do `OOMKilled` and mysterious slowdowns come from? Today we answer both, then cover a third question: where does data that must not be lost live, given that a container is ephemeral and everything written inside it disappears when the pod is recreated?
 
 The running example is the online shop `shop` with three services of different needs. Three `api` replicas should be spread across different nodes, so one machine failing does not take out every copy. Two `worker` pods are background processors, less critical, movable if needed. One `postgres` is the demanding one: it holds data that must not be lost and needs a stable name and a stable disk that survives pod recreation. On these three we show how to place, constrain, and store.
 
@@ -128,7 +128,7 @@ The application says "give me 100 gigabytes" and the cluster finds or creates a 
 
 There are countless storage systems: AWS and Google Cloud disks, distributed systems like `Ceph`, plain old `NFS`, local SSDs. How does Kubernetes work with all of them without carrying every vendor's code? Through a standard interface — `CSI` (`Container Storage Interface`). It is a contract: any storage vendor writes a `CSI` driver (plugin) that can, on Kubernetes' command, create a volume, attach it to a node, detach it, take a snapshot. Once the driver exists, that vendor's disks work natively in the cluster.
 
-Note the recurring pattern: Lecture 1 had `CRI` for runtimes, Lecture 4 will have `CNI` for networking, here `CSI` for storage. Kubernetes standardizes its boundaries through interfaces to stay independent of specific implementations.
+Note the recurring pattern: Lecture 1 had `CRI` for runtimes, the networking lecture will have `CNI`, here `CSI` for storage. Kubernetes standardizes its boundaries through interfaces to stay independent of specific implementations.
 
 ### StatefulSet: stable identity
 
@@ -144,7 +144,7 @@ So a `StatefulSet` gives the database a lasting identity and its own data.
 
 `StatefulSet` and `PVC` solve two things — identity and storage — but not the full operation of a database. Backups, restore testing, version upgrades without data loss, replication setup, failover to a replica when the primary dies — a `StatefulSet` does none of that.
 
-So in practice databases in Kubernetes usually run not on a bare `StatefulSet` but through an operator (from Lecture 2): the operator encodes all this operational work and does it for you. The grown-up conclusion: running a database in the cluster is a deliberate engineering decision, not "just deploy `postgres` and forget it." Either you take a mature operator that carries backups and failover, or you deliberately keep the database outside the cluster in a managed service. For `shop` a `postgres` operator would be reasonable — it configures `StatefulSet`, `PVC`, and all of today's pieces under the hood.
+So in practice databases in Kubernetes usually run not on a bare `StatefulSet` but through an operator (from the control-plane lecture): the operator encodes all this operational work and does it for you. The grown-up conclusion: running a database in the cluster is a deliberate engineering decision, not "just deploy `postgres` and forget it." Either you take a mature operator that carries backups and failover, or you deliberately keep the database outside the cluster in a managed service. For `shop` a `postgres` operator would be reasonable — it configures `StatefulSet`, `PVC`, and all of today's pieces under the hood.
 
 ---
 

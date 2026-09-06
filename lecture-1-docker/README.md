@@ -228,6 +228,6 @@ Signatures and the supply chain are covered in the security lectures.
 - An image is layers + metadata, all by hash; `overlayfs` builds the root; data lives in volumes.
 - Launch: `dockerd → containerd → shim → runc → process`; Kubernetes reaches the same bottom via CRI.
 - Building with BuildKit + multi-stage; delivery via a registry; isolation is real but thinner than a VM's due to the shared kernel.
-- Next comes orchestration: dozens of services, many nodes, failures and upgrades — managed by Kubernetes, starting from its control plane.
+- Next — how to observe all this: metrics, logs and traces (the next lecture), then orchestration — Kubernetes and its control plane.
 
 > Lab: build a container by hand and keep a service within limits — see [lab.md](lab.md).

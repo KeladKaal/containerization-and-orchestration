@@ -1,6 +1,6 @@
-# Lecture 6 — Observability and monitoring
+# Lecture 2 — Observability and monitoring
 
-You can set up containers, the cluster, and networking perfectly, but if you can't see what happens inside, you learn about problems from angry users instead of your own graphs. This lecture answers how "sight" works in Kubernetes: where metrics come from, how to collect logs from all pods, how to trace one request across many services, and — most importantly — what to watch and what to page on. Lecture 5 added a service mesh on top of the network; now we observe everything we built. The running example stays the same — the online shop `shop` with services `api` (×3), `worker`, and `postgres`.
+You can set up containers, the cluster, and networking perfectly, but if you can't see what happens inside, you learn about problems from angry users instead of your own graphs. This lecture answers how "sight" works in Kubernetes: where metrics come from, how to collect logs from all pods, how to trace one request across many services, and — most importantly — what to watch and what to page on. Monitoring comes early in the course — right after Docker: it's mandatory in every later lab, so it runs as a cross-cutting theme. The running example stays the same — the online shop `shop` with services `api` (×3), `worker`, and `postgres`.
 
 ---
 
@@ -70,7 +70,7 @@ Two ways to write a log. Plain text: "2026-05-01 db connection error for order 1
 
 ### Kubernetes events are not logs
 
-Events are a separate signal: not what your app writes, but messages from the cluster itself about what it does to your objects. Examples: `FailedScheduling` (pod didn't fit — the Pending from Lecture 3), `OOMKilled` (terminated for exceeding memory), `BackOff` (restarting in a loop — the inside of `CrashLoopBackOff`), `Pulling`/`Pulled` (fetching the image), `Evicted` (evicted under pressure). View with `kubectl describe pod <name>` (Events section at the bottom, for that pod — the first place to look when a pod won't start) or `kubectl get events` for the whole namespace. Key detail: events are short-lived — kept about an hour, then deleted. For after-the-fact investigation, collect them centrally too. Keep the distinction: logs = what the APPLICATION says; events = what the CLUSTER does to it. Investigate both.
+Events are a separate signal: not what your app writes, but messages from the cluster itself about what it does to your objects. Examples: `FailedScheduling` (pod didn't fit — the Pending state), `OOMKilled` (terminated for exceeding memory), `BackOff` (restarting in a loop — the inside of `CrashLoopBackOff`), `Pulling`/`Pulled` (fetching the image), `Evicted` (evicted under pressure). View with `kubectl describe pod <name>` (Events section at the bottom, for that pod — the first place to look when a pod won't start) or `kubectl get events` for the whole namespace. Key detail: events are short-lived — kept about an hour, then deleted. For after-the-fact investigation, collect them centrally too. Keep the distinction: logs = what the APPLICATION says; events = what the CLUSTER does to it. Investigate both.
 
 ### Metrics + logs + events together
 
@@ -95,7 +95,7 @@ One client request crosses many services (`api → worker → postgres → ...`)
 - span — one unit of work (e.g. "processing in `api`" or "query to `postgres`"): start, end, duration.
 - trace — the whole path of one request, a tree of linked spans.
 
-How they link into one tree across different services and nodes: the first request is assigned a unique trace-id, which is passed down the chain, usually in HTTP headers — this is context propagation. Each service sees the trace-id, adds its spans under the same id, and forwards it; the tracing system assembles all spans with one trace-id into a tree. For this to work, apps must forward the headers — which requires instrumenting the code: adding a library that creates spans around operations and propagates the trace-id. Usually not rewriting logic, just a library plus a few lines of config. A mesh (Lecture 5) helps partially — it sees inter-service calls and can add basic spans at service boundaries with no code — but detail inside a service (which functions, which DB queries) comes only from instrumenting the code; the mesh doesn't look inside a service.
+How they link into one tree across different services and nodes: the first request is assigned a unique trace-id, which is passed down the chain, usually in HTTP headers — this is context propagation. Each service sees the trace-id, adds its spans under the same id, and forwards it; the tracing system assembles all spans with one trace-id into a tree. For this to work, apps must forward the headers — which requires instrumenting the code: adding a library that creates spans around operations and propagates the trace-id. Usually not rewriting logic, just a library plus a few lines of config. A service mesh (covered later in the course) helps partially — it sees inter-service calls and can add basic spans at service boundaries with no code — but detail inside a service (which functions, which DB queries) comes only from instrumenting the code; the mesh doesn't look inside a service.
 
 ### OpenTelemetry and Jaeger
 
@@ -136,7 +136,7 @@ Good observability is not "more alerts", it's "you're paged only when it truly m
 
 ### eBPF in observability
 
-eBPF (Lecture 4) runs programs safely inside the kernel and gives observability without changing application code.
+eBPF — a mechanism that safely runs small programs inside the Linux kernel — gives observability without changing application code.
 
 - Kernel programs see syscalls, network connections, latencies — across all processes on a node at once.
 - You can get metrics and often traces automatically, without instrumenting each service by hand.
@@ -155,4 +155,6 @@ eBPF doesn't fully replace application observability — business metrics like o
 - Traces: spans under a shared trace-id, context propagation; standard — OpenTelemetry, viewer — Jaeger.
 - Practice: golden signals (latency, traffic, errors, saturation); alert on symptoms and SLO risk, not causes; fight alert fatigue; eBPF lowers the barrier.
 
-> Lab: build observability that catches an incident blind — see [lab.md](lab.md).
+Next we move up into orchestration — how Kubernetes runs all this, starting with the control plane.
+
+> Lab: set up metrics, logs and traces for your service and configure 3 alerts — see [lab.md](lab.md).
