@@ -8,7 +8,7 @@ The services are simple, generated. The learning part is network policies and di
 
 ## Part 0 — Your services
 
-Write (may be generated, not graded):
+Write — your own or generated; the implementation doesn't affect the grade:
 
 - `api` — HTTP: `GET /health` → `ok`; `POST /order` → writes an order to PostgreSQL; `GET /orders` → reads;
 - `worker` — loop: once a second reads new orders from PostgreSQL and marks them processed.
@@ -45,7 +45,7 @@ Point the monitoring from lab 2 at the network: metrics for connections, dropped
 
 ## What to submit
 
-- Code of the `api` and `worker` services with a Dockerfile (generated code is not graded).
+- The `api` and `worker` service code with a Dockerfile (any implementation, doesn't affect the grade).
 - `README.md`: the chosen CNI and why; how a pod gets its network (part 1); the target matrix (part 2); the final "expected/actual" matrix (part 4); the breakdown of the hidden fault — how you found and fixed it (part 5); the dashboard and justification of the three metrics.
 - Configs: manifests/Helm and all network policies.
 - Screenshots: the pod network (IP, veth); the foreign pod did NOT reach the database; a green access matrix; the traffic map with the found block; the dashboard.

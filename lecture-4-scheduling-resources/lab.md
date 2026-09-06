@@ -8,7 +8,7 @@ The services are simple, generated. The learning part is the scheduler, resource
 
 ## Part 0 — Your services
 
-Write (may be generated, not graded) two services:
+Write two services — your own or generated; the implementation doesn't affect the grade:
 
 - `api` — HTTP: `GET /health` → `ok`; `POST /order` → writes an order to PostgreSQL; `GET /orders` → reads;
 - `batch` — background load: in an infinite loop it takes CPU and memory, does nothing useful.
@@ -45,7 +45,7 @@ Point the monitoring from lab 2 at pod resources and state. Choose 3 metrics for
 
 ## What to submit
 
-- Code of the `api` and `batch` services with a Dockerfile (generated code is not graded).
+- The `api` and `batch` service code with a Dockerfile (any implementation, doesn't affect the grade).
 - `README.md`: the chosen spreading mechanism and why; proof of replica placement (part 2); priority/QoS/PDB settings (part 3); what you observed in Pending, preemption, and eviction with an explanation (parts 4–5); the SLA and graphs that it holds (part 6); the dashboard and justification of the three metrics.
 - Configs: manifests/Helm, priorityClass, PDB, resource settings.
 - Screenshots: replicas on different nodes; pods in Pending; the moment of preemption; the moment of eviction (`batch` evicted, order alive); order load graphs; the dashboard.

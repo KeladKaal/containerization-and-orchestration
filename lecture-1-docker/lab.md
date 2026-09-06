@@ -73,7 +73,7 @@ Collect container metrics (memory, CPU, throttling) from the cgroup or via cAdvi
 
 ## What to submit
 
-- The `api` service code with a Dockerfile (generated code isn't graded).
+- The `api` service code with a Dockerfile (any implementation, doesn't affect the grade).
 - The `mydocker.sh` script — your Docker from parts 2–4.
 - `README.md`: the service language; what each step in parts 2–4 showed; the comparison of your script with `docker run` (part 5); the image comparison (part 6); what gVisor adds (part 7); the dashboard and the rationale for the three metrics.
 - Configs: seccomp profile, Dockerfile.

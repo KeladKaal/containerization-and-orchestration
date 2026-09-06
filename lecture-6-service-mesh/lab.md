@@ -8,7 +8,7 @@ The lab is sized for a modest laptop: single-node cluster, light mesh, mesh only
 
 ## Part 0 — Your services
 
-Write (may be generated, not graded) `api` in two versions, v1 and v2, identical except:
+Write `api` in two versions, v1 and v2 — your own or generated; the implementation doesn't affect the grade — identical except:
 
 - `GET /version` returns `v1` or `v2`;
 - in v2 the environment variable `FAIL=true` makes `POST /order` return a 500 error.
@@ -49,7 +49,7 @@ The mesh emits traffic metrics on its own — build a dashboard from them (error
 
 ## What to submit
 
-- The `api` v1/v2 code and the gate script with a Dockerfile (generated code is not graded; the gate logic described in words is graded).
+- The `api` v1/v2 code and the gate script with a Dockerfile (any implementation, doesn't affect the grade; the gate logic described in words is graded).
 - `README.md`: the chosen mesh and why; proof of mTLS (part 2); the baseline and the cost of the mesh (parts 1 and 6); the gate logic (part 4); the results of both scenarios with graphs (part 5); the verdict "is the mesh needed"; the dashboard and the justification of the three metrics.
 - Configs: manifests/Helm, mesh and traffic split settings.
 - Screenshots: confirmation of encryption; the 90/10 traffic split by `/version`; the automatic rollback of a bad v2; the automatic rollout of a healthy v2; the comparison of baseline and with mesh; the dashboard.

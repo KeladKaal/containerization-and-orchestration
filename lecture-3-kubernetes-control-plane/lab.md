@@ -8,7 +8,7 @@ There is almost no code here: rules are declared declaratively, the service is s
 
 ## Part 0 — Your service
 
-Write a service (you may generate it, not graded). HTTP service `api`:
+Write a service — your own or generated; the implementation doesn't affect the grade. HTTP service `api`:
 
 - `GET /health` — returns `ok`;
 - `POST /order` — writes an order row to PostgreSQL;
@@ -47,7 +47,7 @@ Bring up monitoring as in lab 2 and point it at the cluster: collect control pla
 
 ## What to submit
 
-- Code of the `api` service with a Dockerfile (generated code is not graded).
+- The `api` service code with a Dockerfile (any implementation, doesn't affect the grade).
 - `README.md`: the chosen policy engine and why; why deleted things come back (part 1); what stopped and what kept working during the control plane failure (part 2); the list of rules and what each protects against (part 3); the report on the 5 bypass attempts (part 4); the dashboard and the justification of the three metrics.
 - Configs: manifests/Helm for `shop` and all policies.
 - Screenshots: a deleted pod coming back; behavior with `etcd` stopped; rejected attempts to violate the rules with the error text; the dashboard.
