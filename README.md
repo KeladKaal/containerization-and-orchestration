@@ -13,11 +13,11 @@
 Восемь лекций по 1,5 часа. Каждая — три логических блока (~25–30 мин). Кликни по лекции, чтобы посмотреть конспект.
 
 1. [Docker: контейнер и образ изнутри](lecture-1-docker/) — namespaces, cgroups, capabilities/seccomp, образы и слои, overlayfs, стек `dockerd → containerd → runc`, сборка и доставка
-2. [Control plane Kubernetes](lecture-2-kubernetes-control-plane/) — декларативная модель и reconciliation, API-сервер, etcd, планировщик, расширение API (CRD, операторы, admission)
-3. [Ресурсы и планирование](lecture-3-scheduling-resources/) — планировщик изнутри, requests/limits и QoS, OOM/eviction, хранилище и StatefulSet
-4. [Сеть Kubernetes](lecture-4-kubernetes-networking/) — CNI, Services и балансировка, kube-proxy, DNS, сетевые политики, eBPF / Cilium
-5. [Service mesh и продвинутый трафик](lecture-5-service-mesh/) — data plane и control plane, Envoy, mTLS, управление трафиком, ambient / eBPF
-6. [Наблюдаемость и мониторинг](lecture-6-observability/) — метрики, логи, трейсы; Prometheus, золотые сигналы, алерты
+2. [Наблюдаемость и мониторинг](lecture-2-observability/) — метрики, логи, трейсы; Prometheus, Grafana, Alertmanager, золотые сигналы, алерты
+3. [Control plane Kubernetes](lecture-3-kubernetes-control-plane/) — декларативная модель и reconciliation, API-сервер, etcd, планировщик, расширение API (CRD, операторы, admission)
+4. [Ресурсы и планирование](lecture-4-scheduling-resources/) — планировщик изнутри, requests/limits и QoS, OOM/eviction, хранилище и StatefulSet
+5. [Сеть Kubernetes](lecture-5-kubernetes-networking/) — CNI, Services и балансировка, kube-proxy, DNS, сетевые политики, eBPF / Cilium
+6. [Service mesh и продвинутый трафик](lecture-6-service-mesh/) — data plane и control plane, Envoy, mTLS, управление трафиком, ambient / eBPF
 7. [MLOps](lecture-7-mlops/) — приглашённая лекция
 8. [AI-инфраструктура](lecture-8-ai/) — бонусная лекция
 
@@ -35,7 +35,7 @@
 
 Почти к каждой технической лекции (1–6) есть практическая лаба — в папке лекции файл [`lab.md`](lecture-1-docker/lab.md). Каждая лаба — это **одна инженерная миссия с проверяемым результатом** (собрать контейнер руками, гарантировать SLA под перегрузкой, построить zero-trust сеть, сделать автопилот релиза и т.д.), а не набор разрозненных действий.
 
-Всё рассчитано на запуск **локально и бесплатно** (kind / k3d / minikube), доступ к облаку не нужен. Подопытные сервисы простые и **генерируются AI по конкретному описанию** — программирование не цель курса; учебная часть — devops-работа вокруг сервиса. **Обязательный пункт в каждой лабе — мониторинг:** нужно самому решить, какие метрики вывести на дашборд, и выбрать **3 метрики под алерты** с обоснованием.
+Всё рассчитано на запуск **локально и бесплатно** (kind / k3d / minikube), доступ к облаку не нужен. Подопытные сервисы простые и **генерируются AI по конкретному описанию** — программирование не цель курса; учебная часть — devops-работа вокруг сервиса. **Обязательный пункт в каждой лабе — мониторинг.** Стек (Prometheus + Grafana + Alertmanager, логи и трейсы) поднимается в лабе 2 и дальше переиспользуется: в каждой лабе нужно самому решить, какие метрики вывести на дашборд, и выбрать **3 метрики под алерты** с обоснованием.
 
 ## Использование AI в этом репозитории
 
