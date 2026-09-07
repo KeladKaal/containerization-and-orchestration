@@ -82,4 +82,4 @@ A practical guide. Three to five services, essentially a monolith with a couple 
 - Cost: resources, latency, operational complexity, and interception "magic" → hence the evolution toward ambient/sidecarless (`ztunnel` + `waypoint`) and `eBPF` (`Cilium`).
 - Adopt a mesh deliberately — when a concrete pain outweighs its complexity — and roll it out gradually.
 
-> Lab: build an autonomous, safe release and measure its cost — see [lab.md](lab.md).
+> The lab for this lecture ("build an autonomous, safe release and measure its cost") is currently available locally only and is not published in the repository.

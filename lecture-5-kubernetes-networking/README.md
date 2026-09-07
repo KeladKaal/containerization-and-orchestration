@@ -101,4 +101,4 @@ The classic combination — iptables rules from kube-proxy plus policy rules —
 - Traffic is restricted via `NetworkPolicy` (by labels, "whatever is not allowed is denied"), but the CNI enforces it, and not every one can — check.
 - The classic iptables stack slows and goes blind at scale; the industry's answer is `eBPF` and Cilium built on it: a fast data plane, fine-grained policies up to L7, and observability (`Hubble`).
 
-> Lab: build a zero-trust network and prove it holds — see [lab.md](lab.md).
+> The lab for this lecture ("build a zero-trust network and prove it holds") is currently available locally only and is not published in the repository.

@@ -159,4 +159,4 @@ So in practice databases in Kubernetes usually run not on a bare `StatefulSet` b
 - State: a container is ephemeral → data in volumes; `PVC` (claim) → `PV` (real volume), `StorageClass` for dynamic provisioning; `CSI` is the standard for attaching any storage.
 - `StatefulSet` gives a database stable names, its own disk, and ordering; full operation is handled by an operator or a managed service.
 
-> Lab: keep the critical path alive under overload — see [lab.md](lab.md).
+> The lab for this lecture ("keep the critical path alive under overload") is currently available locally only and is not published in the repository.
