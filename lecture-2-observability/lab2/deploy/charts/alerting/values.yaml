@@ -1,0 +1,25 @@
+karma:
+  image:
+    repository: ghcr.io/prymitive/karma
+    tag: "v0.121"
+    pullPolicy: IfNotPresent
+  alertmanagerUri: http://kps-alertmanager.obs.svc.cluster.local:9093
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 192Mi
+
+sink:
+  enabled: true
+  image:
+    repository: mendhak/http-https-echo
+    tag: "31"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 128Mi

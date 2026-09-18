@@ -1,0 +1,6 @@
+apiVersion: v2
+name: api
+description: Сервис api и всё, что к нему относится — Deployment, Service, ServiceMonitor, PrometheusRule, дашборд
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

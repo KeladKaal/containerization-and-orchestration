@@ -1,0 +1,13 @@
+image:
+  repository: jaegertracing/jaeger
+  tag: "2.20.0"
+  pullPolicy: IfNotPresent
+
+maxTraces: 50000
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 256Mi
+  limits:
+    memory: 768Mi

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: alerting
+description: |
+  Karma — дашборд активных алертов поверх Alertmanager, и alert-sink — приёмник вебхуков,
+  на котором видно, что Alertmanager реально доставляет уведомления, а не просто рисует их у себя.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

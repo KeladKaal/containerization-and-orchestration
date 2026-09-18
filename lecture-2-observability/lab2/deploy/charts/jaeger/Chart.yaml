@@ -1,0 +1,9 @@
+apiVersion: v2
+name: jaeger
+description: |
+  Jaeger all-in-one с памятью вместо постоянного хранилища.
+  Upstream-чарт jaegertracing/jaeger 4.x (Jaeger v2) режима all-in-one не имеет и требует
+  Cassandra или Elasticsearch — для стенда это несоразмерно, поэтому собственный минимальный чарт.
+type: application
+version: 0.1.0
+appVersion: "2.20.0"

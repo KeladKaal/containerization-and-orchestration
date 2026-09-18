@@ -1,0 +1,66 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: api-slo
+  labels:
+    app.kubernetes.io/name: api
+spec:
+  groups:
+    - name: api.slo
+      rules:
+        - alert: ApiHighErrorRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{job="api",outcome="SERVER_ERROR"}[2m]))
+              /
+            sum(rate(http_server_requests_seconds_count{job="api"}[2m]))
+              > {{ .Values.alerts.errorRatio }}
+          for: {{ .Values.alerts.errorRatioFor }}
+          labels:
+            severity: critical
+            service: api
+          annotations:
+            summary: "api отдаёт 5xx выше порога"
+            description: >-
+              Доля 5xx за 2 минуты — {{ `{{ $value | humanizePercentage }}` }}
+              при пороге {{ .Values.alerts.errorRatio | float64 | mulf 100 }}%.
+            impact: "Часть запросов пользователей завершается ошибкой."
+            action: >-
+              Открыть RED-дашборд, найти ручку с ростом 5xx, в Grafana отфильтровать
+              логи по level=ERROR, из строки лога перейти по trace_id в Jaeger и найти упавший span.
+        - alert: ApiLatencyP95High
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum by (le) (rate(http_server_requests_seconds_bucket{job="api",uri!~"/actuator.*"}[5m]))
+            ) > {{ .Values.alerts.latencyP95Seconds }}
+          for: {{ .Values.alerts.latencyFor }}
+          labels:
+            severity: warning
+            service: api
+          annotations:
+            summary: "p95 времени ответа api выше допустимого"
+            description: >-
+              p95 за 5 минут — {{ `{{ $value | humanizeDuration }}` }}
+              при пороге {{ .Values.alerts.latencyP95Seconds }}s.
+            impact: "Клиенты упираются в таймауты, деградация видна раньше, чем появятся 5xx."
+            action: >-
+              Сравнить p95 по ручкам на дашборде, в Jaeger открыть медленный трейс
+              и посмотреть по waterfall, какой вложенный span съел время.
+        - alert: ApiDown
+          expr: |
+            max(up{job="api"}) == 0 or absent(up{job="api"})
+          for: {{ .Values.alerts.downFor }}
+          labels:
+            severity: critical
+            service: api
+          annotations:
+            summary: "api не отвечает ни одной репликой"
+            description: >-
+              Ни один под api не скрейпится Prometheus дольше {{ .Values.alerts.downFor }}.
+            impact: "Полный отказ сервиса: это не деградация, это простой."
+            action: >-
+              kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/name=api,
+              смотреть CrashLoopBackOff/OOMKilled и события; логи последнего упавшего пода — в Loki,
+              они переживают перезапуск пода.
+{{- end }}
