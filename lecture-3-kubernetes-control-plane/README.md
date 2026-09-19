@@ -91,4 +91,4 @@ Writing custom admission code for every small rule is expensive. Hence ready-mad
 - Everything is tied through state in `etcd`, not through direct calls — hence the robustness.
 - The API is extensible: `CRD` (your own type), operators (`CRD` + controller), admission webhooks (validating and mutating), policies (Gatekeeper/Kyverno) — boundaries for the whole cluster.
 
-> The lab for this lecture ("make it impossible to break the cluster's rules") is currently available locally only and is not published in the repository.
+> Lab: set cluster guardrails with policy, then build a self-healing Helm chart for `shop` with the database through an operator — see [lab.md](lab.md).
