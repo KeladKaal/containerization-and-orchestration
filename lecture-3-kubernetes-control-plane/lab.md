@@ -15,7 +15,7 @@ Everything runs locally and for free: kind, k3d, or minikube — no cloud. Writi
 Generate `api` and `worker`:
 
 - `api` — an HTTP service with endpoints:
-  - `GET /health` — returns `ok`;
+  - `GET /health` — returns `ok`, but returns a 5xx instead when an env var (e.g. `HEALTH_FAIL=true`) is set — you'll need this in Part 2;
   - `POST /order` — writes an order to `postgres`;
   - `GET /orders` — reads and returns the list of orders;
 - `worker` — reads orders from `postgres` and marks them processed.
@@ -33,7 +33,7 @@ Prepare 5 raw manifests, each breaking one rule (no limits, an untrusted image, 
 
 ## Part 2 — Chart for api and worker
 
-Write `Chart.yaml`, `values.yaml`, and `Deployment`/`Service` templates for `api` (replicas from `values`, 3 by default) and `worker` (2 by default). Bake in from the start what the rules from Part 1 require.
+Write `Chart.yaml`, `values.yaml`, and `Deployment`/`Service` templates for `api` (replicas from `values`, 3 by default) and `worker` (2 by default), with readiness and liveness probes on `/health`. Bake in from the start what the rules from Part 1 require.
 
 Install the chart. If a template doesn't comply with a rule, the install fails with a policy error — fix it and get a clean install.
 
@@ -41,6 +41,10 @@ Check reconciliation on your chart:
 
 - delete the `api` pod by hand → it comes back;
 - change `replicas` in `values.yaml`, run `helm upgrade` → the pod count catches up to the new value.
+
+Now a real rolling update. Bump the `api` image version in `values.yaml` and run `helm upgrade` while hammering `/health` in a loop — confirm not a single request fails and pods roll over one at a time, not all at once.
+
+Then ship a deliberately broken version: set `HEALTH_FAIL=true` for `api` and run `helm upgrade` again. Show that the rollout gets stuck — the new pods never pass readiness, so the old healthy ones are never removed and the service keeps responding throughout. Run `helm rollback` to the previous revision and confirm the cluster is back to a healthy state.
 
 ## Part 3 — Postgres through an operator
 
@@ -76,7 +80,7 @@ What you should end up with:
 - The `api`/`worker` code with a Dockerfile (any implementation, doesn't affect the grade).
 - The cluster guardrail bundle (Kyverno/Gatekeeper policies).
 - The `shop` Helm chart: `Chart.yaml`, `values.yaml`, all templates, including the database's CRD object and `PrometheusRule`/`ServiceMonitor`.
-- `README.md`: the policy engine choice and rule rationale (Part 1); what reconciliation showed on the chart (Part 2) and on the operator (Part 3); how an operator differs from `controller-manager`; what survived the control plane failure (Part 4); the rationale for the 3 alerts (Part 5).
+- `README.md`: the policy engine choice and rule rationale (Part 1); what reconciliation showed on the chart, including the rolling update and the rollback of a broken version (Part 2); reconciliation and the CRD on the operator, and how an operator differs from `controller-manager` (Part 3); what survived the control plane failure (Part 4); the rationale for the 3 alerts (Part 5).
 - Screenshots: of the whole process.
 
 ## How to start
