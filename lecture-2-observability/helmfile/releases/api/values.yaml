@@ -27,3 +27,6 @@ ingress:
         - path: /
           pathType: Prefix
   tls: []
+
+nameOverride: api
+fullnameOverride: api
