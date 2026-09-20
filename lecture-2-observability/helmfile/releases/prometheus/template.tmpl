@@ -6,6 +6,7 @@
 💦ПОТУШЕНО💦
 {{ end }}
 Алерт: {{ .Labels.alertname }}
-Описание: {{ .Labels.alertname }}
+Описание: {{ .Annotations.summary }}
+Критичность: {{ .Labels.severity }}
 {{ end }}
 {{ end }}

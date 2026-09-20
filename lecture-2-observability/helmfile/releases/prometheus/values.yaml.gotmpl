@@ -18,6 +18,8 @@ serverFiles:
               and
               sum(increase(http_requests_total{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"}[5m])) >= 10
             for: 5m
+            labels:
+              severity: "Critical"
             annotations:
               summary: "API error rate is above 50%"
           - alert: HighLatency
@@ -31,6 +33,8 @@ serverFiles:
                 )
               ) > 5
             for: 5m
+            labels:
+              severity: "Critical"
             annotations:
               summary: "High responce latency"
           - alert: ApiDown
@@ -39,6 +43,8 @@ serverFiles:
               or
               absent(up{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"})
             for: 5m
+            labels:
+              severity: "Critical"
             annotations:
               summary: "Api is DOWN"      
 
