@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Go build and test artifacts
+bin/
+*.test
+coverage.out
+
+# Packaged Helm charts
+*.tgz
