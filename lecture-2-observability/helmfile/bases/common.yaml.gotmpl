@@ -1,0 +1,8 @@
+templates:
+  common:
+    createNamespace: true
+    missingFileHandler: Warn
+    values:
+      - "../releases/{{`{{ .Release.Name }}`}}/values.yaml"
+    secrets:
+      - "../releases/{{`{{ .Release.Name }}`}}/secrets.yaml"

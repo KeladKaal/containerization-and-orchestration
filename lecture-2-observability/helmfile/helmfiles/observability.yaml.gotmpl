@@ -1,0 +1,21 @@
+bases:
+  - ../bases/common.yaml.gotmpl
+
+defaultInherit:
+  - common
+
+repositories:
+  - name: grafana-community
+    url: https://grafana-community.github.io/helm-charts
+
+
+releases:
+  - name: grafana
+    namespace: observability
+    chart: grafana-community/grafana
+    version: 13.2.5
+
+  - name: prometheus
+    namespace: observability
+    chart: oci://ghcr.io/prometheus-community/charts/prometheus
+    version: 29.21.0

@@ -1,0 +1,7 @@
+server:
+  image:
+    repository: quay.io/prometheus/prometheus
+    tag: "v3.13.2"
+
+alertmanager:
+  enabled: false

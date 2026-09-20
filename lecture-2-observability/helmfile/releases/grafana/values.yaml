@@ -1,0 +1,17 @@
+image:
+  registry: docker.io
+  repository: grafana/grafana
+  tag: "13.2.2-distroless"
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  hosts:
+    - grafana.local
+  path: "/"
+  pathType: Prefix
+  tls: []
+
+persistence:
+  type: pvc
+  enabled: true

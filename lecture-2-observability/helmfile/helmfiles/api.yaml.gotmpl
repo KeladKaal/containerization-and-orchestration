@@ -1,0 +1,10 @@
+bases:
+  - ../bases/common.yaml.gotmpl
+
+defaultInherit:
+  - common
+
+releases:
+  - name: api
+    namespace: api
+    chart: ../charts/api
