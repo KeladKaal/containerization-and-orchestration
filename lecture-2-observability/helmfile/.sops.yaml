@@ -3,4 +3,7 @@ creation_rules:
     encrypted_regex: '(?i).*token.*'
     age:
       - age1hzgk40srsm6xv260h0xptaa0qqdpetegx5vjl78x9qmk9u92jagsezvequ
-    
+  
+stores:
+  yaml:
+    indent: 2

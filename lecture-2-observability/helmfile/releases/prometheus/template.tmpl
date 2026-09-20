@@ -1,0 +1,11 @@
+{{ define "telegram.lab2.text" }}
+{{ range .Alerts }}
+{{ if eq .Status "firing" }}
+🔥ОГОНЬ🔥
+{{ else }}
+💦ПОТУШЕНО💦
+{{ end }}
+Алерт: {{ .Labels.alertname }}
+Описание: {{ .Labels.alertname }}
+{{ end }}
+{{ end }}

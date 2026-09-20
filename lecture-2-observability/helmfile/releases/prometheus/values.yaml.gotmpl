@@ -40,4 +40,16 @@ serverFiles:
               absent(up{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"})
             for: 5m
             annotations:
-              summary: "Api is DOWN"
+              summary: "Api is DOWN"      
+
+alertmanager:
+  enabled: true
+  templates:
+    alertmanager.tmpl: |-
+{{ readFile "template.tmpl" | indent 6 }}
+  config:
+    route:
+      group_wait: 10s
+      group_interval: 5m
+      receiver: telegram
+      repeat_interval: 1h
