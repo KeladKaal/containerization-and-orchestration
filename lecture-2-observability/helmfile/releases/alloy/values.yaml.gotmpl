@@ -1,0 +1,13 @@
+---
+image:
+  registry: docker.io
+  repository: grafana/alloy
+  tag: v1.19.2
+
+controller:
+  type: daemonset
+
+alloy:
+  configMap:
+    content: |-
+{{ readFile "config.alloy" | indent 6 }}

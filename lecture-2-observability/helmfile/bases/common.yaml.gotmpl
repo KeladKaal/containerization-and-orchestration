@@ -4,5 +4,6 @@ templates:
     missingFileHandler: Warn
     values:
       - "../releases/{{`{{ .Release.Name }}`}}/values.yaml"
+      - "../releases/{{`{{ .Release.Name }}`}}/values.yaml.gotmpl"
     secrets:
       - "../releases/{{`{{ .Release.Name }}`}}/secrets.yaml"

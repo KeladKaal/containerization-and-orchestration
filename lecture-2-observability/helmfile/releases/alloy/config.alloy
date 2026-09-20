@@ -1,0 +1,51 @@
+// Отправляет внутренние логи в Loki.
+logging {
+  level    = "info"
+  format   = "logfmt"
+  write_to = [loki.write.cluster.receiver]
+}
+
+discovery.kubernetes "api" {
+  role = "pod"
+
+  selectors {
+    role  = "pod"
+    label = "app.kubernetes.io/part-of=lab2-observability"
+  }
+
+  namespaces {
+    names = ["api"]
+  }
+}
+
+// приводим лейблы в нужный формат
+discovery.relabel "api" {
+	targets    = discovery.kubernetes.api.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+}
+
+
+loki.source.kubernetes "api" {
+	targets = discovery.relabel.api.output
+  forward_to = [loki.write.cluster.receiver]
+}
+
+loki.write "cluster" {
+  endpoint {
+    url = "http://loki-gateway/loki/api/v1/push"
+  }
+}

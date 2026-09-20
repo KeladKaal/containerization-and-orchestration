@@ -7,6 +7,8 @@ defaultInherit:
 repositories:
   - name: grafana-community
     url: https://grafana-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
 
 
 releases:
@@ -19,3 +21,13 @@ releases:
     namespace: observability
     chart: oci://ghcr.io/prometheus-community/charts/prometheus
     version: 29.21.0
+
+  - name: loki
+    namespace: observability
+    chart: grafana-community/loki
+    version: 18.13.4
+
+  - name: alloy
+    namespace: observability
+    chart: grafana/alloy
+    version: 1.12.1
