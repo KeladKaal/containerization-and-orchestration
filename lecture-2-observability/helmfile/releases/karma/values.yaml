@@ -1,0 +1,20 @@
+nameOverride: karma
+fullnameOverride: karma
+
+image:
+  repository: ghcr.io/prymitive/karma
+  tag: "v0.132"
+
+env:
+  ALERTMANAGER_URI: "http://prometheus-alertmanager:9093"
+
+ingress:
+  enabled: true
+  className: "traefik"
+  annotations: {}
+  hosts:
+    - host: karma.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
