@@ -3,5 +3,41 @@ server:
     repository: quay.io/prometheus/prometheus
     tag: "v3.13.2"
 
-alertmanager:
-  enabled: false
+serverFiles:
+  alerting_rules.yml:
+    groups:
+      - name: api
+        rules:
+          - alert: HighErrorRate
+            expr: >-
+              (
+                sum(rate(http_errors_total{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"}[5m]))
+                /
+                sum(rate(http_requests_total{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"}[5m]))
+              ) > 0.5
+              and
+              sum(increase(http_requests_total{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"}[5m])) >= 10
+            for: 5m
+            annotations:
+              summary: "API error rate is above 50%"
+          - alert: HighLatency
+            expr: >-
+              histogram_quantile(
+                0.95,
+                sum by (le) (
+                  rate(http_request_duration_seconds_bucket{
+                    app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"
+                  }[5m])
+                )
+              ) > 5
+            for: 5m
+            annotations:
+              summary: "High responce latency"
+          - alert: ApiDown
+            expr: >-
+              up{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"} == 0
+              or
+              absent(up{app_kubernetes_io_name="api", app_kubernetes_io_part_of="lab2-observability"})
+            for: 5m
+            annotations:
+              summary: "Api is DOWN"
