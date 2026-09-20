@@ -9,6 +9,8 @@ repositories:
     url: https://grafana-community.github.io/helm-charts
   - name: grafana
     url: https://grafana.github.io/helm-charts
+  - name: jaegertracing
+    url: https://jaegertracing.github.io/helm-charts
 
 
 releases:
@@ -31,3 +33,8 @@ releases:
     namespace: observability
     chart: grafana/alloy
     version: 1.12.1
+
+  - name: jaeger
+    namespace: observability
+    chart: jaegertracing/jaeger
+    version: 4.13.1

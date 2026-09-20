@@ -1,0 +1,3 @@
+jaeger:
+  image:
+    tag: "2.20.0"
