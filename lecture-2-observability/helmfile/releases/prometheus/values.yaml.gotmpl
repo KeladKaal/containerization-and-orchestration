@@ -62,6 +62,8 @@ extraManifests:
 
 alertmanager:
   enabled: true
+  image:
+    tag: "v0.33.1"
   templates:
     alertmanager.tmpl: |-
 {{ readFile "template.tmpl" | indent 6 }}
