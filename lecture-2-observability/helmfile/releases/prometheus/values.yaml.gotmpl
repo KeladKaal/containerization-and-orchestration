@@ -48,6 +48,18 @@ serverFiles:
             annotations:
               summary: "Api is DOWN"      
 
+extraManifests:
+  - |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: prometheus-secrets
+      namespace: {{ .Release.Namespace }}
+    type: Opaque
+    stringData:
+      bot-token: {{`{{ .Values.prometheusSecret.bot_token | quote }}`}}
+      chat-id: {{`{{ .Values.prometheusSecret.chat_id | quote }}`}}
+
 alertmanager:
   enabled: true
   templates:
@@ -59,3 +71,15 @@ alertmanager:
       group_interval: 5m
       receiver: telegram
       repeat_interval: 1h
+    receivers:
+      - name: telegram
+        telegram_configs:
+          - bot_token_file: /etc/am-secrets/bot-token
+            chat_id_file: /etc/am-secrets/chat-id
+            send_resolved: true
+            message: '{{`{{ template "telegram.lab2.text" . }}`}}'
+  extraSecretMounts:
+    - name: chat-bot-token
+      mountPath: /etc/am-secrets/
+      secretName: prometheus-secrets
+      readOnly: true
