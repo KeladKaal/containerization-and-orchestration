@@ -1,160 +1,175 @@
-# Lecture 2 — Observability and monitoring
+# Отчёт по лабораторной работе № 2
 
-You can set up containers, the cluster, and networking perfectly, but if you can't see what happens inside, you learn about problems from angry users instead of your own graphs. This lecture answers how "sight" works in Kubernetes: where metrics come from, how to collect logs from all pods, how to trace one request across many services, and — most importantly — what to watch and what to page on. Monitoring comes early in the course — right after Docker: it's mandatory in every later lab, so it runs as a cross-cutting theme. The running example stays the same — the online shop `shop` with services `api` (×3), `worker`, and `postgres`.
+## Оглавление
 
----
+0. [Подготовка](#service)
+1. [Метрики: Prometheus и Grafana](#metrics)
+2. [Логи: Loki и Grafana](#logs)
+3. [Трассировка: OpenTelemetry и Jaeger](#traces)
+4. [Оповещения: Alertmanager и Karma](#alerts)
+5. [Послесловие](#conclusions)
 
-## Block 1. Metrics
+<a id="service"></a>
+## 0. Подготовка
 
-### Monitoring vs observability
+В качестве тестового приложения снова выступает навайбкодженное Go-приложение.
+Для него был взят [Dockerfile](./api/Dockerfile), аналогичный таковому из первой лабораторной.
 
-Two words that get confused. Monitoring: we pick known indicators in advance and set alarms ("CPU above 90% — send an alert"). It answers "is everything OK?" and is good for problems we foresaw. Observability: the broader ability to understand what happens inside a system from the signals it emits, even when the problem is new and unforeseen. It answers "why did this particular thing break?". Monitoring says "the service is unhealthy"; good observability lets you find out why without adding new code for every case. A real system needs both.
+Для развёртывания использовался базовый [Helm-чарт](./helmfile/charts/api-universal/), созданный через `helm create` и слегка доработанный (добавил нормальную передачу env).
+По ходу выполнения лабораторной он будет изменён в универсальный чарт для базовых приложений, но об этом позже.
 
-### The three pillars
+В качестве кластера выступает локальный одноузловый кластер `k3d`.
+Он выбран из-за простоты развёртывания и готовности кластера из коробки (сразу настроено локальное хранение, ingress и т. д.).
 
-- Metrics — numbers over time (requests per second, latency, memory). Answer WHAT happens and when. Cheap and compact — good for trends and alerts.
-- Logs — text records of application events ("could not connect to the database"). Answer WHY.
-- Traces — the path of one request across many services. Answer WHERE the bottleneck is.
+**Структура репозитория**
 
-Their power is in the combination. Typical investigation: a metric shows error rate rising in `api` (what) → a trace shows requests stalling on the call to `postgres` (where) → the `postgres` log explains it ran out of connections (why).
+Для удобства (в первую очередь моего) была организована [базовая структура](./helmfile/) для развёртывания приложений с помощью Helmfile. Кратко пройдёмся по её структуре:
 
-### What we want to see in shop
+- [`bases`](./helmfile/bases/): базовые шаблоны, наследующиеся в релизах.
+- [`helmfiles`](./helmfile/helmfiles/): хранятся шаблоны релизов, описывающие какие компоненты и как ставить
+- [`charts`](./helmfile/charts/): локальные чарты
+- [`releases`](./helmfile/releases/): хранятся переменные для отдельных релизов.
 
-Metrics — load and health of each service and node; logs — what the services write, which errors; cluster events — why a pod didn't start, who got evicted, what restarted; traces — where time is lost when an order is slow.
+Также настроена работа с секретами через SOPS и плагин Helm Secrets, но об этом будет в главе про оповещения.
 
-### What a metric is
+Все компоненты наблюдаемости для простоты были описаны в одном [helmfile](./helmfile/helmfiles/observability.yaml.gotmpl) и деплоятся в один namespace.
 
-A metric is a numeric value measured over time, e.g. "requests per second to `api`": 120 at 10:00, 350 at 13:00. Technically this sequence of "time → value" pairs is a time series. A metric has labels — qualifiers in braces: `http_requests_total{service="api", code="500"}` is the counter of requests to `api` with response code 500. Labels let you slice one metric by service, code, node. Because metrics are cheap and compact (just numbers), you store them for a long time, see week-long trends, and hang alerts on them.
+Во время написания отчета понял, что не особо продумал, как эту структуру нормально переиспользовать в будущих лабораторных работах, но видимо это проблемы будущего меня.
 
-### Prometheus and the pull model
+<a id="metrics"></a>
+## 1. Метрики: Prometheus и Grafana
+Сначала развернём само API. Для этого, как говорилось выше, был создан Helm-чарт.
+Образ был собран локально и подготовлен к использованию в кластере командой `k3d image import api:1.0.0 -c lab-cluster`.
 
-Prometheus is the de facto standard for metrics in Kubernetes. It stores time series and queries them. Its collection model is pull: Prometheus itself periodically (say every 15 s) goes to each target and fetches its metrics. Each target — an app or component — simply exposes an HTTP endpoint (by convention `/metrics`) and serves its current metrics as plain text. Prometheus reads that endpoint — this act is called a scrape. In Kubernetes it also discovers what to scrape via service discovery. The opposite is push (services send metrics themselves). Pull is convenient because Prometheus immediately sees when a target fails to answer (it's down); with push, a silent service is easily confused with a healthy one that simply sends nothing.
+![Проверка работы api](./pictures/check-api.png)
 
-### Where metrics come from in Kubernetes
+Развернём Grafana. Для этого используем официальный Helm-чарт.
+Интересный факт: актуальный чарт отдан на поддержку комьюнити.
+Насколько я понял, официально поддерживаемые командой чарты теперь доступны для enterprise клиентов
 
-Several sources supply metrics — don't confuse who does what. (`kubelet` is the Kubernetes agent on each node that runs and holds pods.)
+![1984](./pictures/grafana-charts.png)
 
-- cAdvisor — built into `kubelet`; container metrics: CPU, memory, network per container. This is what `kubectl top pod` shows.
-- node-exporter — metrics of the node as a machine: host CPU, free memory, disk usage, network. Health of the hardware under the cluster.
-- kube-state-metrics — state of Kubernetes objects: how many pods are Running vs Pending, how many restarts, how many replicas a Deployment wants vs has. The main source for whether the cluster-as-orchestrator is healthy.
-- control plane metrics (API server, scheduler, etcd) and `kubelet`.
-- application metrics — what your service exposes on `/metrics`, including business metrics like orders placed.
+В [values](./helmfile/releases/grafana/values.yaml) для Grafana была зафиксирована версия образа (как и для всех следующих сервисов),
+включено хранение данных в PVC (чтобы дашбордики не пропали) и прописан ingress для внешнего доступа (не сильно нужен, проще просто порты прокинуть).
 
-Cheat sheet: consumption of a specific pod — cAdvisor; node health and disk space — node-exporter; "how many pods are Pending, who's restarting" — kube-state-metrics; business metrics — application metrics.
+Теперь установим Prometheus. Для начала в переменных только зафиксируем образ и выключим встроенный Alertmanager.
+Для того чтобы Prometheus скрейпил метрики с приложения, добавим в его конфиг следующие аннотации:
+```
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "8080"
+```
+Они говорят Prometheus, что данное приложение отдаёт метрики на порту 8080 по пути `/metrics` и что их надо скрейпить.
 
-### A bit of PromQL
+Добавим источник данных Prometheus в Grafana и проверим, что метрики собираются.
 
-PromQL is the query language for Prometheus metrics. Three ideas:
+![Проверка сбора метрик](./pictures/check-metrics-jobs.png)
 
-- Select a series by name and labels: `http_requests_total{service="api"}`.
-- `rate(...[5m])` — rate of growth of a counter. Many metrics are counters that only grow from service start and never reset; the raw "5M requests total" tells you nothing. What matters is the rate — requests per second now. `rate` turns "total accumulated" into "per second", and `[5m]` is a smoothing window over the last 5 minutes.
-- Aggregation: `sum by (code) (rate(http_requests_total[5m]))` — sum separately per value of the `code` label, i.e. the rate for 200s and for 500s separately.
+Теперь построим дашборды p95 времени ответа, количества запросов и количества ошибок.
+Также добавим эти графики с разбивкой по методам.
 
-Together they give the key health metric — error rate: rate of 5xx requests divided by rate of all requests.
+![графики](./pictures/dashboard.png)
 
----
+Можно увидеть, что графики реагируют на тестовые вызовы методов и показывают корректную информацию.
 
-## Block 2. Logs and events
+<a id="logs"></a>
+## 2. Логи: Loki и Grafana
+В качестве хранилища логов развернём Grafana Loki.
+Однако Loki сам не собирает логи, для этого надо развернуть отдельный агент.
+В его роли будет выступать Grafana Alloy.
+Он будет развёрнут с помощью DaemonSet, чтобы агент присутствовал на каждой ноде.
+В [конфигурации](./helmfile/releases/alloy/config.alloy) описана логика сбора логов.
+Они берутся из stdout подов, которые подходят под критерии поиска таргетов.
+Перед отправкой логов часть Kubernetes-лейблов преобразуется в формат, понятный для Loki.
+Важно аккуратно относиться к лейблам, потому что каждая уникальная комбинация лейблов создаёт отдельный индекс.
+Соответственно, лейблы с большим количеством уникальных значений могут привести к значительному потреблению места и нагрузке на Loki.
 
-### The log's path: why stdout, not a file
+Loki поддерживает следующие варианты развёртывания:
+- Monolithic mode: один бинарник выполняет всю логику
+- Simple Scalable: упрощённое развёртывание с возможностью скейлинга. [Deprecated](https://grafana.com/docs/loki/latest/get-started/deployment-modes/), в релизе 4.0 будет удалён
+- Microservices mode: каждый компонент развёрнут в виде отдельного микросервиса
 
-Container rule: the app writes logs to standard output (`stdout`/`stderr`), not to files inside the container. Reason — the container filesystem is ephemeral (Lecture 1): write a log to a file inside and the container is recreated, taking the log with it. So: the app writes to `stdout` → the node's runtime (here `containerd`) captures it into a file on the node → `kubectl logs` reads that file. That's why `kubectl logs` works and shows only the current pod. But logs on the node aren't eternal either: they rotate (old ones overwritten so the disk doesn't fill), and if the node dies you lose access. So logs must be collected from nodes into a separate, centralized store.
+Для лабораторной работы был выбран монолитный режим из-за его простоты.
+Также используем локальную память для хранения логов.
 
-### Centralized log collection
+Проверим, что логи действительно собираются. Запустим тестовый запрос и найдем его в Grafana (перед этим добавим Loki датасурс)
 
-You need an agent that collects logs from all nodes into one place. On each node runs a collection agent — as a DaemonSet, a useful object type. Where a Deployment runs some number of replicas anywhere, a DaemonSet guarantees exactly one pod per node — ideal for agents that must be on every machine. The agent reads the log files of all pods on its node and ships them to a central store. Common agents: Fluent Bit, Vector, Promtail; common stores: Loki, Elasticsearch. Result: logs of all pods from all nodes flow into one searchable place, readable even after a pod or whole node dies. Two tools: `kubectl logs` for "look at a live pod right now", centralized collection for history, search, and after-the-fact investigations. In production you need the second.
+![Проверка логов](./pictures/08-loki-api-503-error-filter.png)
 
-### Structured logs
-
-Two ways to write a log. Plain text: "2026-05-01 db connection error for order 123" — readable to a human, hard for a machine to filter (parsing regexes, brittle). Structured (usually JSON): `{level:"error", msg:"db connection failed", order_id:123}` — same information as fields. The log store can search and aggregate by field: "show all `error` for `order_id=123`", "count errors per endpoint". In large systems structured logs are nearly mandatory — searching by field is far more powerful than by eye. Agree on this with developers early.
-
-### Kubernetes events are not logs
-
-Events are a separate signal: not what your app writes, but messages from the cluster itself about what it does to your objects. Examples: `FailedScheduling` (pod didn't fit — the Pending state), `OOMKilled` (terminated for exceeding memory), `BackOff` (restarting in a loop — the inside of `CrashLoopBackOff`), `Pulling`/`Pulled` (fetching the image), `Evicted` (evicted under pressure). View with `kubectl describe pod <name>` (Events section at the bottom, for that pod — the first place to look when a pod won't start) or `kubectl get events` for the whole namespace. Key detail: events are short-lived — kept about an hour, then deleted. For after-the-fact investigation, collect them centrally too. Keep the distinction: logs = what the APPLICATION says; events = what the CLUSTER does to it. Investigate both.
-
-### Metrics + logs + events together
-
-On a real incident:
-
-1. Metric: `api`'s 5xx error rate spikes — WHAT and when, but not why.
-2. Events: pod `postgres` shows `OOMKilled` and `BackOff` — the cluster says the DB is restarting for lack of memory.
-3. Logs: `api` logs "timeout connecting to postgres", `postgres` logs "out of memory" — WHY.
-
-Conclusion: `postgres` hit its memory limit → restarts → `api` can't connect → errors for clients. Fix the `postgres` memory (limit or leak). Diagnosis in three steps, each pillar adding its piece.
-
----
-
-## Block 3. Traces, alerts, eBPF
-
-### Why traces
-
-One client request crosses many services (`api → worker → postgres → ...`). The client says "slow" — but where exactly? Metrics show "slow on average", not for a specific request. Logs of each service show fragments, but reassembling one request's path by hand is nearly impossible at scale. Distributed tracing solves this: it shows one specific request's path across the whole chain and how much time it spent at each step. Literally visible: `api` — 5 ms, `worker` — 10 ms, the `postgres` call — 800 ms — there's the culprit.
-
-### How a trace works: trace and span
-
-- span — one unit of work (e.g. "processing in `api`" or "query to `postgres`"): start, end, duration.
-- trace — the whole path of one request, a tree of linked spans.
-
-How they link into one tree across different services and nodes: the first request is assigned a unique trace-id, which is passed down the chain, usually in HTTP headers — this is context propagation. Each service sees the trace-id, adds its spans under the same id, and forwards it; the tracing system assembles all spans with one trace-id into a tree. For this to work, apps must forward the headers — which requires instrumenting the code: adding a library that creates spans around operations and propagates the trace-id. Usually not rewriting logic, just a library plus a few lines of config. A service mesh (covered later in the course) helps partially — it sees inter-service calls and can add basic spans at service boundaries with no code — but detail inside a service (which functions, which DB queries) comes only from instrumenting the code; the mesh doesn't look inside a service.
-
-### OpenTelemetry and Jaeger
-
-- OpenTelemetry (OTel) — an open standard and set of libraries for observability in general: a uniform way to collect and transmit metrics, logs, traces. It ended the zoo of formats where switching monitoring systems meant re-instrumenting every service. Instrument once to the standard, then send to any compatible system.
-- Jaeger — a popular system for storing and viewing traces. It shows the span tree with durations: open a slow request and see where the time went.
-
-In practice: instrument with OpenTelemetry, traces go to Jaeger, metrics to Prometheus, logs to Loki — all linked.
-
-### Golden signals: what to watch
-
-You can gather thousands of metrics and drown. What first? The proven answer from Google's SRE (Site Reliability Engineering) team — four golden signals:
-
-- Latency — how long a request takes (separately for successful and failed; fast errors can mask slow success).
-- Traffic — requests per second.
-- Errors — fraction of failed requests.
-- Saturation — how full your resources are (memory, CPU, disk — how close to the limit).
-
-Starting observability for a new service, begin with exactly these four and add specifics later.
-
-### Alerts: page on symptoms, not causes
-
-Main principle: page a human on what actually hurts the user (a symptom), not on every internal cause.
-
-- Good: "`api` error rate > 5% for five minutes", "order latency > 2 s" — the user is hurting now; worth a night call.
-- Bad: "node CPU 90%" on its own — maybe the service runs fine at 90%; you wake someone for nothing. Cause metrics like CPU help investigation but are a path to burnout as page triggers.
-
-A good threshold reference is an SLO (service level objective), e.g. "99.9% of requests succeed": alert when you risk breaching it — a real threat to the user, not an abstract number.
-
-### Alert fatigue
-
-Alert fatigue — so many alerts, mostly false, that people stop reacting, mute notifications, and miss the real incident in the noise. Paradox: too much monitoring makes a system less observable because signals lose trust. How to fight it:
-
-- Every alert must require action; if you do nothing on it, delete it.
-- Fewer alerts, but meaningful; group related ones so one incident doesn't flood you; fix or remove noisy ones.
-- Every alert should carry a clear "what to do", at least a runbook link.
-
-Good observability is not "more alerts", it's "you're paged only when it truly matters".
-
-### eBPF in observability
-
-eBPF — a mechanism that safely runs small programs inside the Linux kernel — gives observability without changing application code.
-
-- Kernel programs see syscalls, network connections, latencies — across all processes on a node at once.
-- You can get metrics and often traces automatically, without instrumenting each service by hand.
-- Tools: Pixie, Cilium/Hubble (network), Parca (profiling — what a process spends CPU and memory on, down to specific functions).
-
-eBPF doesn't fully replace application observability — business metrics like orders placed are known only to the app; the kernel knows nothing of them. But it drastically lowers the barrier: instead of instrumenting every service for basic visibility, it's largely "turn it on and see".
-
----
-
-## Summary
-
-- Three pillars: metrics (what), logs (why), traces (where) — strong in combination.
-- Metrics: Prometheus pulls (scrapes `/metrics`, discovers targets); sources — cAdvisor (containers), node-exporter (node), kube-state-metrics (k8s objects), control plane, application; PromQL: `rate()` for counters and error rate.
-- Logs to `stdout` (ephemeral container FS) → node runtime → centralized collection by a DaemonSet agent into Loki/Elasticsearch; structured (JSON) logs are searchable by field.
-- Kubernetes events ≠ logs: what the CLUSTER does (`OOMKilled`, `FailedScheduling`); short-lived, collect them too.
-- Traces: spans under a shared trace-id, context propagation; standard — OpenTelemetry, viewer — Jaeger.
-- Practice: golden signals (latency, traffic, errors, saturation); alert on symptoms and SLO risk, not causes; fight alert fatigue; eBPF lowers the barrier.
-
-Next we move up into orchestration — how Kubernetes runs all this, starting with the control plane.
-
-> Lab: set up metrics, logs and traces for your service and configure 3 alerts — see [lab.md](lab.md).
+<a id="traces"></a>
+## 3. Трассировка: OpenTelemetry и Jaeger
+Для трейсов развернем Jaeger в его дефолтной конфигурации в режиме all-in-one.
+Сам Jaeger не собирает трейсы, приложение должно их отправлять.
+После развёртывания Jaeger надо задать его адрес в env-переменных API:
+```
+env:
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger.observability.svc.cluster.local:4318"
+  OTEL_SERVICE_NAME: "api"
+
+```
+Пробросим порты для доступа к Jaeger и найдём тестовый запрос.
+![Трейс по логам](./pictures/09-log-trace-correlation-by-trace-id.png)
+На данном скриншоте видно, что по trace ID из логов можно найти сам трейс в Jaeger.
+Теперь запустим запрос к `/slow`.
+![Пример трейса](./pictures/10-jaeger-slow-request-trace.png)
+Из-за того, что операция `/slow` обёрнута в отдельный span, можно посмотреть зависимости между запросами.
+
+<a id="alerts"></a>
+## 4. Оповещения: Alertmanager и Karma
+Для алертов включим в чарте Prometheus встроенный Alertmanager.
+При его включении в ConfigMap Prometheus автоматически прописываются правила поиска экземпляра Alertmanager. Их можно увидеть ниже.
+
+![Поиск am](./pictures/am-discovery.png)
+То есть Prometheus получает список подов и фильтрует их по namespace и лейблам.
+Алерты отправляются на найденные адреса по порту 9093.
+
+Были настроены три алерта ([файл с их конфигурацией](./helmfile/releases/prometheus/values.yaml.gotmpl))
+
+- Больше половины ответов выдают ошибку 5xx в течение 5 минут. Алерт не работает, если количество запросов меньше 10, чтобы исключить ложные срабатывания.
+- 95-й персентиль за 5 минут превышает 5 секунд.
+- API упало и не отвечает метриками в течение 5 минут.
+
+В качестве интеграции был создан Telegram-бот и чат с ним.
+
+![бот алертинга](./pictures/alertBot.png)
+
+Для отправки через него алертов надо передать в Alertmanager ID чата и токен бота.
+С целью безопасного хранения секретов в репозитории был базово настроен SOPS.
+[В файле конфигурации](./helmfile/.sops.yaml) был прописан шаблон путей, где хранятся чувствительные данные, и довольно костыльно заданы поля, которые надо шифровать.
+SOPS был выбран, потому что позволяет хранить секреты без дополнительной инфраструктуры.
+Кроме того, Helmfile использует плагин Helm Secrets для автоматической расшифровки секретов при применении конфигурации.
+
+Сами секреты хранятся в [файле](./helmfile/releases/prometheus/secrets.yaml), который helmfile распознает как зашифрованный и расшифровывает во время рендера.
+Далее рендерится отдельный Secret, прописанный в переменной `extraManifests`.
+Из этого Secret данные маунтятся в под. Описанные конфигурации находятся [тут](./helmfile/releases/prometheus/values.yaml.gotmpl).
+
+Проверим получение алертов через Telegram.
+Простейшим способом будет скейл API в ноль, чтобы вызвать алертинг упавшего API.
+
+![первая проба алерта](./pictures/alert-first-iteration.png)
+
+Выглядит не очень красиво и читабельно.
+Поэтому был настроен базовый [шаблон](./helmfile/releases/prometheus/template.tmpl) сообщений алертов.
+Для удобства редактирования он вынесен в отдельный файл и считывается во время рендера.
+
+![горим](./pictures/firing.png)
+![сгорели](./pictures/not-firing.png)
+
+Для деплоя Karma было решено написать свой Helm-чарт, так как официального нет, а пользовательские не очень популярны.
+Karma представляет собой базовое приложение, которое деплоится одним контейнером.
+Оно очень похоже на тестовое API, поэтому решено было переиспользовать API-чарт. В этот момент он стал универсальным чартом.
+
+В самой конфигурации Karma ничего интересного нет, достаточно прописать хост Alertmanager. Поэтому вот фотокарточка GUI с работающим алертом.
+
+![karma](./pictures/12-karma-alert-and-telegram-notifications.png)
+
+<a id="conclusions"></a>
+## 5. Послесловие
+В ходе работы были развёрнуты все требуемые механизмы наблюдаемости, однако большинство из них работает с базовой конфигурацией.
+Из этого следует огромный простор для доработки (однако надо оставить время на следующие лабораторные).
+Например:
+- для Grafana просится базовый провиженинг с автоматическим добавлением датасурсов, дашбордов и необходимых плагинов
+- почти все развёрнутые компоненты хранят персистентные данные и поддерживают работу с объектными хранилищами. Поэтому желательно перенести их в S3 для простоты масштабирования и отсутствия привязки к ноде
+- сделать конфиги Alloy более гибкими, чтобы API из следующих лабораторных сами подтягивались (там и решу эту проблему)
+- не «хихи-хаха» сообщения алертов, а нормальные информативные сообщения с лейблами, откуда алерт пришёл и к чему относится.
