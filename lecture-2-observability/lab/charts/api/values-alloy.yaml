@@ -1,0 +1,20 @@
+cluster:
+  name: minikube
+
+destinations:
+  loki:
+    type: loki
+    url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+
+collectors:
+  alloy-logs:
+    presets: [filesystem-log-reader, daemonset]
+
+podLogsViaLoki:
+  enabled: true
+  namespaces:
+    - default
+  collector: alloy-logs
+
+clusterEvents:
+  enabled: true 

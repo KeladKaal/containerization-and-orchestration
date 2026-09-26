@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-echo
+  namespace: monitoring
+  labels:
+    app: webhook-echo
+spec:
+  selector:
+    app: webhook-echo
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+

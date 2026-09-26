@@ -1,0 +1,29 @@
+replicaCount: 1
+
+image:
+  repository: api
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+containerPort: 8080
+externalServicePort: 8080
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  allowPrivilegeEscalation: false
+
+env:
+  - name: OTEL_SERVICE_NAME
+    value: api
+  - name: SERVICE_VERSION
+    value: "0.1.0"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://jaeger.monitoring.svc.cluster.local:4317
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi

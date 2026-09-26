@@ -1,0 +1,5 @@
+# The build context should carry source and manifests only.
+.git
+.gitignore
+*.md
+.dockerignore

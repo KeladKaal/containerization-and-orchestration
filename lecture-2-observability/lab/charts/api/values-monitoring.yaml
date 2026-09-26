@@ -1,0 +1,37 @@
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+grafana:
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.monitoring.svc.cluster.local
+      isDefault: false
+      editable: true
+
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ["alertname", "namespace"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 3h
+      receiver: "webhook-echo"
+      routes:
+        # Watchdog — встроенный "пульс" из дефолтных правил kube-prometheus-stack,
+        # горит всегда по задумке. Раздельный маршрут, чтобы не шуметь в наш вебхук.
+        - receiver: "null"
+          matchers:
+            - alertname = "Watchdog"
+    receivers:
+      - name: "null"
+      - name: "webhook-echo"
+        webhook_configs:
+          - url: "http://webhook-echo.monitoring.svc.cluster.local:8080/alerts"
+            send_resolved: true

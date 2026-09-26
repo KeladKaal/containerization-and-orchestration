@@ -1,0 +1,48 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: api-critical-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: api.rules
+      rules:
+        - alert: APIHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{job="api", status=~"5.."}[5m]))
+              /
+            sum(rate(http_requests_total{job="api"}[5m]))
+              > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "api: error rate above 5% for 5m"
+            description: >-
+              {{ "{{" }} $value | humanizePercentage {{ "}}" }} of requests to api have been
+              failing with a 5xx status over the last 5 minutes.
+
+        - alert: APIHighLatencyP95
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{job="api"}[5m])) by (le)
+            ) > 1.5
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "api: p95 latency above 1.5s for 5m"
+            description: >-
+              p95 response time over the last 5 minutes is
+              {{ "{{" }} $value | humanizeDuration {{ "}}" }}.
+
+        - alert: APIDown
+          expr: up{job="api"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "api target is down"
+            description: >-
+              Prometheus has failed to scrape api for 2 minutes straight —
+              the service is not responding at all.
