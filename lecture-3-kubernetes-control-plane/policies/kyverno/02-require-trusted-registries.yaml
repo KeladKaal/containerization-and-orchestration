@@ -1,0 +1,40 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-trusted-registries
+spec:
+  validationActions:
+    - Deny
+
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+
+  matchConditions:
+    - name: exclude-system-namespaces
+      expression: >-
+        object.metadata.namespace != "kube-system" &&
+        object.metadata.namespace != "kyverno"
+
+  variables:
+    - name: images
+      expression: >-
+        object.spec.containers.map(container, parseImageReference(container.image)) +
+        object.spec.?initContainers.orValue([]).map(container, parseImageReference(container.image)) +
+        object.spec.?ephemeralContainers.orValue([]).map(container, parseImageReference(container.image))
+
+  validations:
+    - message: >-
+        Container images must come from ghcr.io or registry.k8s.io.
+      expression: >-
+        variables.images.all(image,
+          image.registry() in ["ghcr.io", "registry.k8s.io"]
+        )

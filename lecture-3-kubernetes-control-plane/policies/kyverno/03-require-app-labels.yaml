@@ -1,0 +1,38 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-app-labels
+spec:
+  validationActions:
+    - Deny
+
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+
+  matchConditions:
+    - name: exclude-system-namespaces
+      expression: >-
+        object.metadata.namespace != "kube-system" &&
+        object.metadata.namespace != "kyverno"
+
+  validations:
+    - message: >-
+        Pods must define app.kubernetes.io/name,
+        app.kubernetes.io/part-of, and app.kubernetes.io/managed-by labels.
+      expression: >-
+        [
+          "app.kubernetes.io/name",
+          "app.kubernetes.io/part-of",
+          "app.kubernetes.io/managed-by"
+        ].all(label,
+          object.metadata.?labels[label].orValue("") != ""
+        )
