@@ -1,0 +1,10 @@
+# Seccomp-фильтр из Шага 4: запрет создания каталогов (mkdir + mkdirat),
+# на запрещённый вызов отвечать EPERM вместо убийства процесса сигналом SIGSYS.
+# Применяется через systemd-run, который собирает из этого BPF-фильтр seccomp:
+
+sudo systemd-run --pty -p SystemCallFilter='~mkdir mkdirat' -p SystemCallErrorNumber=EPERM bash
+
+# Проверка внутри сессии:
+#   mkdir /tmp/blocked        -> Permission denied (mkdirat отбит фильтром)
+#   touch /tmp/works          -> проходит (openat не в списке)
+#   grep Seccomp /proc/$$/status  -> Seccomp: 2 (SECCOMP_MODE_FILTER)

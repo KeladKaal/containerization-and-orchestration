@@ -1,0 +1,8 @@
+FROM golang:1.22 AS build
+WORKDIR /src
+COPY . .
+RUN CGO_ENABLED=0 go build -o /api .
+
+FROM scratch
+COPY --from=build /api /api
+CMD ["/api"]
