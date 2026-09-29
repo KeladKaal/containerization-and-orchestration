@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,9 @@ type Order struct {
 
 type Store struct {
 	pool *pgxpool.Pool
+
+	schemaMu    sync.RWMutex
+	schemaReady bool
 }
 
 func Open(ctx context.Context, databaseURL string) (*Store, error) {
@@ -33,17 +37,11 @@ func Open(ctx context.Context, databaseURL string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create postgres pool: %w", err)
 	}
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("connect to postgres: %w", err)
-	}
 
-	s := &Store{pool: pool}
-	if err := s.ensureSchema(ctx); err != nil {
-		pool.Close()
-		return nil, err
-	}
-	return s, nil
+	// pgxpool connects lazily. This lets the API health endpoint and the worker
+	// process start before Postgres is installed; database operations retry the
+	// schema initialization when Postgres becomes available.
+	return &Store{pool: pool}, nil
 }
 
 func (s *Store) Close() {
@@ -51,6 +49,19 @@ func (s *Store) Close() {
 }
 
 func (s *Store) ensureSchema(ctx context.Context) error {
+	s.schemaMu.RLock()
+	ready := s.schemaReady
+	s.schemaMu.RUnlock()
+	if ready {
+		return nil
+	}
+
+	s.schemaMu.Lock()
+	defer s.schemaMu.Unlock()
+	if s.schemaReady {
+		return nil
+	}
+
 	const schema = `
 		CREATE TABLE IF NOT EXISTS orders (
 			id BIGSERIAL PRIMARY KEY,
@@ -65,10 +76,15 @@ func (s *Store) ensureSchema(ctx context.Context) error {
 	if _, err := s.pool.Exec(ctx, schema); err != nil {
 		return fmt.Errorf("initialize database schema: %w", err)
 	}
+	s.schemaReady = true
 	return nil
 }
 
 func (s *Store) CreateOrder(ctx context.Context, payload json.RawMessage) (Order, error) {
+	if err := s.ensureSchema(ctx); err != nil {
+		return Order{}, err
+	}
+
 	const query = `
 		INSERT INTO orders (payload)
 		VALUES ($1)
@@ -89,6 +105,10 @@ func (s *Store) CreateOrder(ctx context.Context, payload json.RawMessage) (Order
 }
 
 func (s *Store) ListOrders(ctx context.Context) ([]Order, error) {
+	if err := s.ensureSchema(ctx); err != nil {
+		return nil, err
+	}
+
 	const query = `
 		SELECT id, payload, processed, created_at, processed_at
 		FROM orders
@@ -123,6 +143,10 @@ func (s *Store) ListOrders(ctx context.Context) ([]Order, error) {
 // ProcessNext atomically claims and marks one pending order. SKIP LOCKED makes
 // this safe when several worker replicas run concurrently.
 func (s *Store) ProcessNext(ctx context.Context) (Order, bool, error) {
+	if err := s.ensureSchema(ctx); err != nil {
+		return Order{}, false, err
+	}
+
 	const query = `
 		WITH next_order AS (
 			SELECT id

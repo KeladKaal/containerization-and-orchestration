@@ -11,6 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"shop/internal/health"
 	"shop/internal/store"
 )
@@ -28,6 +31,19 @@ func main() {
 
 	interval := durationFromEnv("POLL_INTERVAL", time.Second)
 	server := startHealthServer(stop)
+	processed := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "shop",
+		Subsystem: "worker",
+		Name:      "orders_processed_total",
+		Help:      "Total number of orders marked as processed by this worker.",
+	})
+	processingErrors := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "shop",
+		Subsystem: "worker",
+		Name:      "processing_errors_total",
+		Help:      "Total number of errors while processing orders.",
+	})
+	prometheus.MustRegister(processed, processingErrors)
 
 	slog.Info("worker started", "poll_interval", interval)
 	ticker := time.NewTicker(interval)
@@ -43,7 +59,7 @@ func main() {
 			cancel()
 			return
 		case <-ticker.C:
-			processAvailable(ctx, db)
+			processAvailable(ctx, db, processed, processingErrors)
 		}
 	}
 }
@@ -51,6 +67,7 @@ func main() {
 func startHealthServer(stop context.CancelFunc) *http.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", health.Handler)
+	mux.Handle("GET /metrics", promhttp.Handler())
 	address := envOrDefault("HTTP_ADDR", ":8080")
 	server := &http.Server{
 		Addr:              address,
@@ -67,11 +84,12 @@ func startHealthServer(stop context.CancelFunc) *http.Server {
 	return server
 }
 
-func processAvailable(ctx context.Context, db *store.Store) {
+func processAvailable(ctx context.Context, db *store.Store, processed prometheus.Counter, processingErrors prometheus.Counter) {
 	for {
 		order, found, err := db.ProcessNext(ctx)
 		if err != nil {
 			if ctx.Err() == nil {
+				processingErrors.Inc()
 				slog.Error("process order failed", "error", err)
 			}
 			return
@@ -79,6 +97,7 @@ func processAvailable(ctx context.Context, db *store.Store) {
 		if !found {
 			return
 		}
+		processed.Inc()
 		slog.Info("order processed", "order_id", order.ID)
 	}
 }

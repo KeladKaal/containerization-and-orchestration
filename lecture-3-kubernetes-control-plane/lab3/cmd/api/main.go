@@ -9,8 +9,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"shop/internal/health"
 	"shop/internal/store"
@@ -20,6 +24,23 @@ const maxOrderSize = 1 << 20 // 1 MiB
 
 type api struct {
 	store *store.Store
+}
+
+type responseRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *responseRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (r *responseRecorder) Write(body []byte) (int, error) {
+	if r.status == 0 {
+		r.status = http.StatusOK
+	}
+	return r.ResponseWriter.Write(body)
 }
 
 func main() {
@@ -34,15 +55,31 @@ func main() {
 	defer db.Close()
 
 	app := &api{store: db}
+	requests := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "shop",
+		Subsystem: "api",
+		Name:      "http_requests_total",
+		Help:      "Total number of HTTP requests handled by the shop API.",
+	}, []string{"method", "route", "status"})
+	duration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "shop",
+		Subsystem: "api",
+		Name:      "http_request_duration_seconds",
+		Help:      "Duration of HTTP requests handled by the shop API.",
+		Buckets:   prometheus.DefBuckets,
+	}, []string{"method", "route"})
+	prometheus.MustRegister(requests, duration)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", health.Handler)
 	mux.HandleFunc("POST /order", app.createOrder)
 	mux.HandleFunc("GET /orders", app.listOrders)
+	mux.Handle("GET /metrics", promhttp.Handler())
 
 	address := envOrDefault("HTTP_ADDR", ":8080")
 	server := &http.Server{
 		Addr:              address,
-		Handler:           mux,
+		Handler:           instrumentHTTP(mux, requests, duration),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
@@ -60,6 +97,31 @@ func main() {
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		slog.Error("api shutdown failed", "error", err)
+	}
+}
+
+func instrumentHTTP(next http.Handler, requests *prometheus.CounterVec, duration *prometheus.HistogramVec) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started := time.Now()
+		recorder := &responseRecorder{ResponseWriter: w}
+		next.ServeHTTP(recorder, r)
+
+		status := recorder.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		route := metricRoute(r.URL.Path)
+		requests.WithLabelValues(r.Method, route, strconv.Itoa(status)).Inc()
+		duration.WithLabelValues(r.Method, route).Observe(time.Since(started).Seconds())
+	})
+}
+
+func metricRoute(path string) string {
+	switch path {
+	case "/health", "/order", "/orders", "/metrics":
+		return path
+	default:
+		return "unmatched"
 	}
 }
 

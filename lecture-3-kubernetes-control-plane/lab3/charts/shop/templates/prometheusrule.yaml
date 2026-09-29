@@ -1,0 +1,52 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "shop.fullname" . }}
+  labels:
+    {{- include "shop.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  groups:
+    - name: shop.rules
+      rules:
+        - alert: ShopAPIUnavailable
+          expr: |
+            max(up{job="api"}) == 0
+            or absent(up{job="api"})
+          for: {{ .Values.monitoring.alerts.apiUnavailableFor }}
+          labels:
+            severity: critical
+          annotations:
+            summary: Shop API is unavailable
+            description: Prometheus cannot scrape any Shop API replica.
+
+        - alert: ShopAPIHighErrorRate
+          expr: |
+            (sum(rate(shop_api_http_requests_total{job="api",status=~"5..",route!~"/health|/metrics"}[2m])) or vector(0))
+            /
+            clamp_min((sum(rate(shop_api_http_requests_total{job="api",route!~"/health|/metrics"}[2m])) or vector(0)), 0.001)
+            > {{ .Values.monitoring.alerts.errorRateThreshold }}
+          for: {{ .Values.monitoring.alerts.errorRateFor }}
+          labels:
+            severity: critical
+          annotations:
+            summary: Shop API has a high HTTP 5xx rate
+            description: More than {{ mulf .Values.monitoring.alerts.errorRateThreshold 100 }}% of business requests return 5xx.
+
+        - alert: ShopAPIHighLatencyP95
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum by (le) (
+                rate(shop_api_http_request_duration_seconds_bucket{job="api",route!~"/health|/metrics"}[5m])
+              )
+            ) > {{ .Values.monitoring.alerts.latencyP95Seconds }}
+          for: {{ .Values.monitoring.alerts.latencyFor }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Shop API p95 latency is high
+            description: Aggregated p95 latency is above {{ .Values.monitoring.alerts.latencyP95Seconds }} second.
+{{- end }}
