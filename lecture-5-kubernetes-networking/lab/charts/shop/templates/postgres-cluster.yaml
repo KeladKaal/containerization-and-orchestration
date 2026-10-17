@@ -1,0 +1,36 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}-postgres
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: postgres
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  instances: {{ .Values.postgres.instances }}
+  imageName: {{ .Values.postgres.imageName }}
+  inheritedMetadata:
+    labels:
+      app.kubernetes.io/part-of: shop
+      owner: {{ .Values.owner }}
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgres.database }}
+      owner: {{ .Values.postgres.username }}
+  storage:
+    size: {{ .Values.postgres.storage.size }}
+    {{- if .Values.postgres.storage.storageClass }}
+    storageClass: {{ .Values.postgres.storage.storageClass }}
+    {{- end }}
+  {{- if .Values.postgres.priorityClassName }}
+  priorityClassName: {{ .Values.postgres.priorityClassName }}
+  {{- end }}
+  enablePDB: false
+  resources:
+    {{- toYaml .Values.postgres.resources | nindent 4 }}
+  enableSuperuserAccess: false
+  primaryUpdateStrategy: unsupervised
+{{- end }}

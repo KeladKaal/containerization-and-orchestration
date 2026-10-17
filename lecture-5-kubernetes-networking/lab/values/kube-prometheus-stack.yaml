@@ -1,0 +1,27 @@
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    scrapeInterval: 15s
+    retention: 2d
+
+grafana:
+  adminPassword: admin
+  grafana.ini:
+    auth.anonymous:
+      enabled: true
+      org_role: Viewer
+
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ["alertname", "namespace"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 3h
+      receiver: "null"
+    receivers:
+      - name: "null"

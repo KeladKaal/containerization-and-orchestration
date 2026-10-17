@@ -1,0 +1,33 @@
+=== t+0s 15:06:21 ===
+shop-api-58d5df6ff4-5w9tw      1/1   Running       0     28s   10.244.2.172   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-8595l      0/1   Running       0     3s    10.244.1.122   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-9pb2w      1/1   Terminating   0     13s   10.244.1.161   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-zdgck      1/1   Running       0     40s   10.244.2.144   shop-worker2   <none>   <none>
+shop-worker-756cc774c4-9v8tk   1/1   Running       0     34s   10.244.1.11    shop-worker    <none>   <none>
+shop-worker-756cc774c4-jtmx2   1/1   Running       0     8s    10.244.2.197   shop-worker2   <none>   <none>
+=== t+45s 15:07:06 ===
+shop-api-58d5df6ff4-fstgr      0/1   Running       0     2s    10.244.2.250   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-fxgvx      1/1   Running       0     7s    10.244.1.104   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-h77z9      1/1   Terminating   0     22s   10.244.2.171   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-qn9s7      1/1   Running       0     27s   10.244.1.146   shop-worker    <none>   <none>
+shop-worker-756cc774c4-lr92q   1/1   Running       0     12s   10.244.2.142   shop-worker2   <none>   <none>
+shop-worker-756cc774c4-xclk5   1/1   Running       0     17s   10.244.1.6     shop-worker    <none>   <none>
+=== t+90s 15:07:51 ===
+shop-api-58d5df6ff4-fxgvx      1/1   Running   0     52s   10.244.1.104   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-hdzx4      1/1   Running   0     21s   10.244.2.48    shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-qn9s7      1/1   Running   0     72s   10.244.1.146   shop-worker    <none>   <none>
+shop-worker-756cc774c4-54w25   0/1   Running   0     1s    10.244.1.161   shop-worker    <none>   <none>
+shop-worker-756cc774c4-hdfl8   1/1   Running   0     6s    10.244.2.41    shop-worker2   <none>   <none>
+=== t+135s 15:08:36 ===
+shop-api-58d5df6ff4-c2tgt      1/1   Running   0     30s   10.244.2.192   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-k6q66      1/1   Running   0     10s   10.244.2.46    shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-p6cvb      1/1   Running   0     20s   10.244.1.162   shop-worker    <none>   <none>
+shop-worker-756cc774c4-hdfl8   1/1   Running   0     51s   10.244.2.41    shop-worker2   <none>   <none>
+shop-worker-756cc774c4-p8tcr   0/1   Running   0     5s    10.244.1.187   shop-worker    <none>   <none>
+=== t+180s 15:09:21 ===
+shop-api-58d5df6ff4-57xtv      0/1   Running       0     4s    10.244.2.171   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-j7fc7      1/1   Running       0     45s   10.244.1.235   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-l6pdl      1/1   Running       0     19s   10.244.1.226   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-pq4hd      1/1   Terminating   0     29s   10.244.2.27    shop-worker2   <none>   <none>
+shop-worker-756cc774c4-hhhqc   0/1   Running       0     14s   10.244.1.89    shop-worker    <none>   <none>
+shop-worker-756cc774c4-rnkrx   1/1   Running       0     34s   10.244.2.92    shop-worker2   <none>   <none>

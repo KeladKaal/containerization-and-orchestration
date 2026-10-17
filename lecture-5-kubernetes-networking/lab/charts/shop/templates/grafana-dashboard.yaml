@@ -1,0 +1,77 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-network-dashboard
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+    grafana_dashboard: "1"
+data:
+  shop-network.json: |
+    {
+      "uid": "shop-network",
+      "title": "Shop — сеть",
+      "editable": true,
+      "schemaVersion": 39,
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Дропы по причинам (Hubble)",
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "pps" }, "overrides": [] },
+          "targets": [
+            {
+              "expr": "sum by (reason) (rate(hubble_drop_total[5m]))",
+              "legendFormat": "{{ "{{reason}}" }}"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "TCP: новые соединения и сбросы (Hubble)",
+          "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "pps" }, "overrides": [] },
+          "targets": [
+            {
+              "expr": "sum by (flag) (rate(hubble_tcp_flags_total{flag=~\"SYN|RST\"}[5m]))",
+              "legendFormat": "{{ "{{flag}}" }}"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "DNS-ответы по rcode (CoreDNS)",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "targets": [
+            {
+              "expr": "sum by (rcode) (rate(coredns_dns_responses_total[5m]))",
+              "legendFormat": "{{ "{{rcode}}" }}"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Флоу по вердиктам (Hubble)",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "pps" }, "overrides": [] },
+          "targets": [
+            {
+              "expr": "sum by (verdict) (rate(hubble_flows_processed_total[5m]))",
+              "legendFormat": "{{ "{{verdict}}" }}"
+            }
+          ]
+        }
+      ]
+    }
+{{- end }}

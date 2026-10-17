@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  revisionHistoryLimit: {{ .Values.worker.revisionHistoryLimit }}
+  progressDeadlineSeconds: {{ .Values.worker.progressDeadlineSeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.worker.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.worker.rollingUpdate.maxSurge }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/part-of: shop
+        owner: {{ .Values.owner }}
+    spec:
+      {{- if .Values.worker.priorityClassName }}
+      priorityClassName: {{ .Values.worker.priorityClassName }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: "{{ .Values.image.registry }}/worker:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: {{ .Values.worker.containerPort }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.worker.containerPort | quote }}
+            - name: HEALTH_FAIL
+              value: {{ .Values.worker.healthFail | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-postgres-app
+                  key: uri
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}

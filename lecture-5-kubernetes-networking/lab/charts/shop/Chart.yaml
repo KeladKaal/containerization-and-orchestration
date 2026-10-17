@@ -1,0 +1,7 @@
+apiVersion: v2
+name: shop
+description: >-
+  Магазин из лабораторной 3 (api, worker, postgres через CloudNativePG), дополненный для лабораторной 4
+type: application
+version: 0.2.0
+appVersion: "0.1.0"

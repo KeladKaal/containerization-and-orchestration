@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-api
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  type: {{ .Values.api.service.type | default "ClusterIP" }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+      protocol: TCP
+      {{- if and (eq (.Values.api.service.type | default "ClusterIP") "NodePort") .Values.api.service.nodePort }}
+      nodePort: {{ .Values.api.service.nodePort }}
+      {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api
