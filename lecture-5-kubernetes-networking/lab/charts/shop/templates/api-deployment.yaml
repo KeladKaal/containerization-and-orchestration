@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  revisionHistoryLimit: {{ .Values.api.revisionHistoryLimit }}
+  progressDeadlineSeconds: {{ .Values.api.progressDeadlineSeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.api.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.api.rollingUpdate.maxSurge }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: shop
+        owner: {{ .Values.owner }}
+    spec:
+      {{- if .Values.api.priorityClassName }}
+      priorityClassName: {{ .Values.api.priorityClassName }}
+      {{- end }}
+
+      {{- if eq .Values.spread.mechanism "topologySpreadConstraints" }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.spread.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.spread.topologyKey }}
+          whenUnsatisfiable: {{ .Values.spread.topologySpreadConstraints.whenUnsatisfiable }}
+          nodeTaintsPolicy: Honor
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ .Chart.Name }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: api
+          matchLabelKeys:
+            - pod-template-hash
+      {{- else if eq .Values.spread.mechanism "podAntiAffinity" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: {{ .Values.spread.podAntiAffinity.weight }}
+              podAffinityTerm:
+                topologyKey: {{ .Values.spread.topologyKey }}
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: {{ .Chart.Name }}
+                    app.kubernetes.io/instance: {{ .Release.Name }}
+                    app.kubernetes.io/component: api
+      {{- else }}
+      {{- fail "spread.mechanism должен быть topologySpreadConstraints или podAntiAffinity" }}
+      {{- end }}
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: "{{ .Values.image.registry }}/api:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.containerPort }}
+              protocol: TCP
+          {{- if .Values.api.preStopSeconds }}
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.api.preStopSeconds }}
+          {{- end }}
+          env:
+            - name: PORT
+              value: {{ .Values.api.containerPort | quote }}
+            - name: HEALTH_FAIL
+              value: {{ .Values.api.healthFail | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-postgres-app
+                  key: uri
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}

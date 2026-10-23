@@ -1,0 +1,18 @@
+{{- if and .Values.postgres.enabled .Values.postgres.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}-postgres-pdb
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: postgres
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  minAvailable: {{ .Values.postgres.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      cnpg.io/cluster: {{ .Release.Name }}-postgres
+      cnpg.io/podRole: instance
+{{- end }}

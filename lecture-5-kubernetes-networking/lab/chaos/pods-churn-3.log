@@ -1,0 +1,41 @@
+=== t+0s 15:19:15 ===
+shop-api-58d5df6ff4-jqlg6      1/1   Running             0     9m37s   10.244.2.21    shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-s7d2s      1/1   Running             0     16s     10.244.2.106   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-w9xhd      0/1   Error               0     9m27s   10.244.1.58    shop-worker    <none>   <none>
+shop-api-58d5df6ff4-zxs52      0/1   Running             0     6s      10.244.1.113   shop-worker    <none>   <none>
+shop-postgres-1                1/1   Running             0     68s     10.244.1.184   shop-worker    <none>   <none>
+shop-worker-756cc774c4-ctxx5   1/1   Running             0     11s     10.244.1.89    shop-worker    <none>   <none>
+shop-worker-756cc774c4-n6p5c   0/1   ContainerCreating   0     1s      <none>         shop-worker2   <none>   <none>
+shop-worker-756cc774c4-rnkrx   0/1   Error               0     10m     10.244.2.92    shop-worker2   <none>   <none>
+=== t+45s 15:20:00 ===
+shop-api-58d5df6ff4-8m92d      1/1   Terminating   0     30s    10.244.2.131   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-bcjvj      1/1   Running       0     15s    10.244.2.127   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-xxjnv      0/1   Running       0     5s     10.244.2.44    shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-zxs52      1/1   Running       0     51s    10.244.1.113   shop-worker    <none>   <none>
+shop-postgres-1                1/1   Running       0     113s   10.244.1.184   shop-worker    <none>   <none>
+shop-worker-756cc774c4-9m2jb   1/1   Running       0     10s    10.244.2.197   shop-worker2   <none>   <none>
+shop-worker-756cc774c4-xx7hh   1/1   Running       0     25s    10.244.1.227   shop-worker    <none>   <none>
+=== t+90s 15:20:45 ===
+shop-api-58d5df6ff4-2qzqw      1/1   Terminating   0     9s      10.244.2.155   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-bcjvj      1/1   Running       0     60s     10.244.2.127   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-nfgjt      0/1   Running       0     4s      10.244.2.32    shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-qpxdc      1/1   Running       0     24s     10.244.1.148   shop-worker    <none>   <none>
+shop-postgres-1                1/1   Running       0     2m38s   10.244.1.184   shop-worker    <none>   <none>
+shop-worker-756cc774c4-pz2l7   1/1   Running       0     19s     10.244.1.138   shop-worker    <none>   <none>
+shop-worker-756cc774c4-vqbkh   1/1   Running       0     29s     10.244.2.112   shop-worker2   <none>   <none>
+=== t+135s 15:21:30 ===
+shop-api-58d5df6ff4-2djrd      1/1   Running       0     28s     10.244.2.235   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-689wm      0/1   Running       0     3s      10.244.1.153   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-q8tc8      1/1   Running       0     13s     10.244.2.238   shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-qpxdc      1/1   Terminating   0     69s     10.244.1.148   shop-worker    <none>   <none>
+shop-postgres-1                1/1   Running       0     3m23s   10.244.1.184   shop-worker    <none>   <none>
+shop-worker-756cc774c4-bhjmj   1/1   Running       0     8s      10.244.2.193   shop-worker2   <none>   <none>
+shop-worker-756cc774c4-pz2l7   1/1   Running       0     64s     10.244.1.138   shop-worker    <none>   <none>
+=== t+180s 15:22:15 ===
+shop-api-58d5df6ff4-d2lc2      0/1   Running       0     1s     10.244.2.32    shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-d2x7f      1/1   Terminating   0     37s    10.244.2.53    shop-worker2   <none>   <none>
+shop-api-58d5df6ff4-mw7jf      1/1   Running       0     7s     10.244.1.115   shop-worker    <none>   <none>
+shop-api-58d5df6ff4-spv4b      1/1   Running       0     17s    10.244.2.225   shop-worker2   <none>   <none>
+shop-postgres-1                1/1   Running       0     4m8s   10.244.1.184   shop-worker    <none>   <none>
+shop-worker-756cc774c4-bhjmj   1/1   Running       0     53s    10.244.2.193   shop-worker2   <none>   <none>
+shop-worker-756cc774c4-bvbn6   1/1   Running       0     12s    10.244.1.207   shop-worker    <none>   <none>

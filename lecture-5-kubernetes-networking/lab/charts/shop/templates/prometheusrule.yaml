@@ -1,0 +1,107 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  groups:
+    - name: shop.critical-path
+      rules:
+        - alert: ShopOrderLatencySLOBreach
+          expr: |-
+            histogram_quantile(0.95,
+              sum by (le) (rate(http_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}", job="{{ .Release.Name }}-api", method="POST", route="/order"}[5m]))
+            ) > {{ .Values.monitoring.sla.orderP95Seconds }}
+          for: 5m
+          labels:
+            severity: critical
+            service: shop
+          annotations:
+            summary: "p95 POST /order выше {{ .Values.monitoring.sla.orderP95Seconds }}s"
+            description: >-
+              95-й перцентиль оформления заказа {{ "{{ $value | humanizeDuration }}" }}
+              при SLA {{ .Values.monitoring.sla.orderP95Seconds }}s. Проверить на дашборде shop: throttling api,
+              рестарты и вытеснения подов api/postgres.
+
+        - alert: ShopCriticalPathPending
+          expr: |-
+            sum by (pod) (kube_pod_status_phase{namespace="{{ .Release.Namespace }}", phase="Pending", pod=~"{{ .Release.Name }}-(api|postgres)-.*"}) > 0
+          for: 2m
+          labels:
+            severity: critical
+            service: shop
+          annotations:
+            summary: "{{ "{{ $labels.pod }}" }} не планируется"
+            description: >-
+              Под критического пути две минуты в Pending: preemption не нашла
+              жертв с меньшим приоритетом. Смотреть: kubectl -n {{ .Release.Namespace }}
+              describe pod {{ "{{ $labels.pod }}" }} (события FailedScheduling).
+
+        - alert: ShopNodeMemoryPressure
+          expr: |-
+            max by (node) (kube_node_status_condition{condition="MemoryPressure", status="true"}) == 1
+          for: 1m
+          labels:
+            severity: warning
+            service: shop
+          annotations:
+            summary: "MemoryPressure на узле {{ "{{ $labels.node }}" }}"
+            description: >-
+              memory.available на узле ниже порога eviction-hard, kubelet
+              вытесняет поды. Проверить, кто съел память:
+              kubectl get events -A --field-selector reason=Evicted
+
+    - name: shop.network
+      rules:
+        - alert: ShopPolicyDeniedTraffic
+          expr: |-
+            sum(rate(hubble_drop_total{reason="POLICY_DENIED"}[5m])) > {{ .Values.monitoring.network.policyDropsPerSecond }}
+          for: 3m
+          labels:
+            severity: warning
+            service: shop
+          annotations:
+            summary: "Политики дропают трафик ({{ "{{ $value | humanize }}" }} пакетов/с)"
+            description: >-
+              Устойчивый поток POLICY_DENIED: либо после релиза сломалось
+              allow-правило и легитимный трафик молча умирает, либо в сети
+              посторонний клиент. Смотреть hubble observe --verdict DROPPED,
+              кто и к кому стучится.
+
+        - alert: ShopTCPResetStorm
+          expr: |-
+            sum(rate(hubble_tcp_flags_total{flag="RST"}[5m]))
+              / sum(rate(hubble_tcp_flags_total{flag="SYN"}[5m])) > {{ .Values.monitoring.network.tcpResetRatio }}
+          for: 5m
+          labels:
+            severity: warning
+            service: shop
+          annotations:
+            summary: "Соединения массово сбрасываются (RST/SYN = {{ "{{ $value | humanize }}" }})"
+            description: >-
+              Доля RST к новым соединениям выше порога: сеть доставляет пакеты,
+              но получатель отвечает отказом — умерший бекенд, закрытый порт или
+              перегруз. Это не дропы политик (те молчат) — смотреть, какой сервис
+              отвечает reset'ами.
+
+        - alert: ShopDNSResolutionErrors
+          expr: |-
+            sum(rate(coredns_dns_responses_total{rcode=~"SERVFAIL|REFUSED"}[5m])) > 0
+          for: 3m
+          labels:
+            severity: critical
+            service: shop
+          annotations:
+            summary: "CoreDNS отдаёт ошибки резолва"
+            description: >-
+              SERVFAIL/REFUSED от CoreDNS: резолв имён в кластере деградировал,
+              сервисы перестанут находить друг друга. NXDOMAIN сюда не входит —
+              это штатный шум ndots/search-доменов. Если же DNS-запросы молча
+              дропает политика, это поймает ShopPolicyDeniedTraffic.
+{{- end }}

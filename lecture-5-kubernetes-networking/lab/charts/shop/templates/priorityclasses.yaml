@@ -1,0 +1,29 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ .Values.priorityClasses.critical.name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: scheduling
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+value: {{ .Values.priorityClasses.critical.value }}
+preemptionPolicy: {{ .Values.priorityClasses.critical.preemptionPolicy }}
+globalDefault: false
+description: {{ .Values.priorityClasses.critical.description | quote }}
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ .Values.priorityClasses.batch.name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: scheduling
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+value: {{ .Values.priorityClasses.batch.value }}
+preemptionPolicy: {{ .Values.priorityClasses.batch.preemptionPolicy }}
+globalDefault: false
+description: {{ .Values.priorityClasses.batch.description | quote }}

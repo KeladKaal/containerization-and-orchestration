@@ -1,0 +1,196 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-default-deny
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-api
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: {{ .Values.networkPolicy.clientCIDR }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.api.containerPort }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.monitoringNamespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: {{ .Values.api.containerPort }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: worker
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.monitoringNamespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: {{ .Values.worker.containerPort }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-postgres
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: shop
+    owner: {{ .Values.owner }}
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: {{ .Release.Name }}-postgres
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: worker
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.cnpgNamespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+    - from:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 8000
+  egress:
+    - ports:
+        {{- range .Values.networkPolicy.apiServerPorts }}
+        - protocol: TCP
+          port: {{ . }}
+        {{- end }}
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: {{ .Release.Name }}-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 8000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- end }}
